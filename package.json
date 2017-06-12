@@ -1,0 +1,28 @@
+{
+  "name": "rdkafka-demo-nodejs",
+  "description": "Example using Kafka and a few other libraries",
+  "version": "0.1.0",
+  "homepage": "https://github.com/giovannicuriel/rdkafka-demo-nodejs",
+  "keywords": [
+    "kafka",
+    "demo"
+  ],
+  "author": {
+    "name": "Giovanni Curiel dos Santos",
+    "email": "giovannicuriel@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/giovannicuriel/rdkafka-demo-nodejs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/giovannicuriel/rdkafka-demo-nodejs/issues"
+  },
+  "bin": {
+    "demo": "src/demo.js"
+  },
+  "main": "src/demo.js",
+  "dependencies": {
+    "node-rdkafka": "1.0.0"
+  }
+}
