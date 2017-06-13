@@ -18,7 +18,7 @@ function createKafkaConsumer() {
         'bootstrap.servers': '127.0.0.1',
         'metadata.broker.list': '127.0.0.1:9092',
         "batch.num.messages" : 100,
-        "group.id" : "demo-group"
+        "group.id" : "demo-group-2"
     }, {}, { 'topics' : ['^demo-default-topic.*']});
 }
 
@@ -29,6 +29,7 @@ function sendMessage(message, kf_prod_stream) {
 
     if (ret) {
         console.log('We queued our message!');
+        console.log('Return value is ', ret);
     } else {
         // Note that this only tells us if the stream's queue is full,
         // it does NOT tell us if the message got to Kafka!  See below...
@@ -60,16 +61,13 @@ function main() {
     var kf_producer = createKafkaProducer();
     var kf_consumer = createKafkaConsumer();
     kf_consumer.on('data', function(message) {
-        console.log('Got message');
-        console.log(message.value.toString());
-
-
         console.log("cons) Received a message");
-        if (message.err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+        console.log("cons) Error value is ", message.err);
+        if ((message.err != undefined) && (message.err != Kafka.CODES.ERRORS.ERR_NO_ERROR)) {
             return;
         }
-        console.log("cons) Received message for topic: " << message.topic);
-        console.log("cons) Message: " << message.value.toString());
+        console.log("cons) Received message for topic: ", message.topic);
+        console.log("cons) Message: ", message.value.toString());
     });
 
     //
