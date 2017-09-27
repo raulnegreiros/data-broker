@@ -1,68 +1,61 @@
-var Kafka = require("node-rdkafka"),
-readline = require('readline');
+var Kafka = require('node-rdkafka'),
+  config = require('./config'),
+  flattener = require('./json-flattener');
 
 function createKafkaProducer() {
-  // Didn't find a way to set the message delivery callback.
-  return new Kafka.Producer.createWriteStream({
-      'compression.codec' : 'snappy',
-      'bootstrap.servers': '127.0.0.1',
-      'metadata.broker.list': '127.0.0.1:9092',
-      "batch.num.messages" : 100
-  }, {}, {'topic' : 'all-devices-alt-2'});
-}
-
-function sendMessage(message, kf_prod_stream) {
-  // Writes a message to the stream
-  var ret = kf_prod_stream.write(new Buffer(message));
-
-  if (ret) {
-      console.log('We queued our message!');
-      console.log('Return value is ', ret);
-  } else {
-      // Note that this only tells us if the stream's queue is full,
-      // it does NOT tell us if the message got to Kafka!  See below...
-      console.log('Too many messages in our queue already');
-  }
-
-  kf_prod_stream.on('error', function (err) {
-      // Here's where we'll know if something went wrong sending to Kafka
-      console.error('Error in our kafka stream');
-      console.error(err);
+  return new Kafka.Producer({
+    'compression.codec': 'snappy',
+    'bootstrap.servers': config.kafka.bootstrap,
+    'metadata.broker.list': config.kafka.metadata_broker_list,
+    'batch.num.messages': config.kafka.batch_num_messages,
+    'dr_cb': true
   });
 }
 
+function sendMessage(message, kafkaProducer) {
+  kafkaProducer.produce(
+    config.kafka.producer.topic,
+    config.kafka.producer.partition,
+    new Buffer(message),
+    config.kafka.producer.key,
+    Date.now()
+  );
+}
+
 function main() {
-// Quick explanation:
-// Kafka is build around four core entities:
-//  - Producers: almost self-explanatory, these are the elements that, well,
-//      generate messages to be published.
-//  - Consumers: the producer counterpart - these elements read messages
-//  - Streams processors: elements that transform messages between message
-//      streams, playing a consumer role at one end, doing something to
-//      those messages and then sending the results to another stream as a
-//      producer.
-//  - Connectors: Like "templates" - these elements are reusable producer/
-//      consumers that connects specific topics to applications.
-// Now, simply put: messages are published in topics, and they can be
-// retrieved individually or in chunks of timeslots.
+  // Quick explanation:
+  // Kafka is build around four core entities:
+  //  - Producers: almost self-explanatory, these are the elements that, well,
+  //      generate messages to be published.
+  //  - Consumers: the producer counterpart - these elements read messages
+  //  - Streams processors: elements that transform messages between message
+  //      streams, playing a consumer role at one end, doing something to
+  //      those messages and then sending the results to another stream as a
+  //      producer.
+  //  - Connectors: Like "templates" - these elements are reusable producer/
+  //      consumers that connects specific topics to applications.
+  // Now, simply put: messages are published in topics, and they can be
+  // retrieved individually or in chunks of timeslots.
 
-var kf_producer = createKafkaProducer();
-//
-// We are almost ready to send a message.
-// Now we need to create the actual message and select a partition
-//
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+  var kafkaProducer = createKafkaProducer();
 
-rl.on('line', (input) => {
+  // Connect to the broker manually
+  kafkaProducer.connect();
+
+  // Wait for the ready event before proceeding
+  kafkaProducer.on('ready', function () {
+    let obj = {
+      'employee': {
+        'name': 'Giovanni',
+        'age': 33,
+        'height': 1.74
+      }
+    };
+
+    let input = JSON.stringify(flattener.flattenJson('', obj));
     console.log('prod) Sending message:', input);
-    var ret = sendMessage(input, kf_producer);
-    if (ret === '-1') {
-        process.exit();
-    }
-});
+    sendMessage(input, kafkaProducer);
+  });
 }
 
 main();

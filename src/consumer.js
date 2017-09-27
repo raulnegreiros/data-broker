@@ -6,13 +6,13 @@ var Kafka = require("node-rdkafka"),
 
 function createKafkaConsumer() {
   // Didn't find a way to set the message delivery callback.
-  return new Kafka.KafkaConsumer.createReadStream({
+  return new Kafka.KafkaConsumer({
     'compression.codec' : 'snappy',
-    'bootstrap.servers': '127.0.0.1',
-    'metadata.broker.list': '127.0.0.1:9092',
-    "batch.num.messages" : 100,
-    "group.id" : "demo-group-2"
-  }, {}, { 'topics' : ['all-devices-alt-2']});
+    'bootstrap.servers': config.kafka.bootstrap,
+    'metadata.broker.list': config.kafka.metadata_broker_list,
+    "batch.num.messages" : config.kafka.batch_num_messages,
+    'group.id': config.kafka.consumer.group_id
+  }, {});
 }
 
 function main() {
@@ -31,14 +31,21 @@ function main() {
   // retrieved individually or in chunks of timeslots.
 
   var kf_consumer = createKafkaConsumer();
-  kf_consumer.on('data', function(message) {
-      console.log("cons) Received a message");
-      console.log("cons) Error value is ", message.err);
-      if ((message.err != undefined) && (message.err != Kafka.CODES.ERRORS.ERR_NO_ERROR)) {
-          return;
-      }
-      console.log("cons) Received message for topic: ", message.topic);
-      console.log("cons) Message: ", message.value.toString());
+  kf_consumer.connect();
+  kf_consumer.on('ready', function() {
+    kf_consumer.subscribe(config.kafka.consumer.topics);
+    kf_consumer.consume();
+  })
+  .on('data', function(data) {
+    // Output the actual message contents
+    console.log("cons) -----------------");
+    console.log("cons) Received a message");
+    console.log("cons) Value: ", data.value.toString());
+    console.log("cons) Size: ", data.size);
+    console.log("cons) Topic: ", data.topic);
+    console.log("cons) Offset: ", data.offset);
+    console.log("cons) Partition: ", data.partition);
+    console.log("cons) Key: ", data.key);
   });
 }
 

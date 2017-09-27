@@ -10,7 +10,13 @@ function flattenJson(preamble, document) {
         ret = ret.concat(flattenJson((preamble === '' ? '' : preamble + '.') + attribute, document[attribute]));
       } else {
         obj = {};
-        obj['' + (preamble === '' ? '' : preamble + '.') + attribute] = document[attribute];
+        obj['' + (preamble === '' ? '' : preamble + '.') + attribute] = {
+          'value' : document[attribute],
+          'type' : typeof(document[attribute]),
+          'metadata' : {
+            'timestamp' : Date.now()
+          }
+        }
         ret.push(obj);
       }
     }
