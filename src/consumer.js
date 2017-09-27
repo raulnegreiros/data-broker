@@ -1,23 +1,23 @@
 /*jslint node: true */
 "use strict";
-var kafka = require("node-rdkafka"),
+var Kafka = require("node-rdkafka"),
     config = require('./config');
 
 
 function createKafkaConsumer() {
   // Didn't find a way to set the message delivery callback.
-  return new kafka.KafkaConsumer.createReadStream({
-      'compression.codec' : 'snappy',
-      'bootstrap.servers': config.kafka.bootstrap,
-      'metadata.broker.list': config.kafka.metadata_broker_list,
-      "batch.num.messages" : config.kafka.batch_num_messages,
-      "group.id" : "device-group-2"
-  }, {}, { 'topics' : ['^all-devic*']});
+  return new Kafka.KafkaConsumer.createReadStream({
+    'compression.codec' : 'snappy',
+    'bootstrap.servers': '127.0.0.1',
+    'metadata.broker.list': '127.0.0.1:9092',
+    "batch.num.messages" : 100,
+    "group.id" : "demo-group-2"
+  }, {}, { 'topics' : ['all-devices-alt-2']});
 }
 
 function main() {
   // Quick explanation:
-  // kafka is build around four core entities:
+  // Kafka is build around four core entities:
   //  - Producers: almost self-explanatory, these are the elements that, well,
   //      generate messages to be published.
   //  - Consumers: the producer counterpart - these elements read messages
@@ -30,14 +30,11 @@ function main() {
   // Now, simply put: messages are published in topics, and they can be
   // retrieved individually or in chunks of timeslots.
 
-
-  console.log('Creating Kafka consumer...');
   var kf_consumer = createKafkaConsumer();
-  console.log('Consumer created.');
   kf_consumer.on('data', function(message) {
       console.log("cons) Received a message");
       console.log("cons) Error value is ", message.err);
-      if ((message.err != undefined) && (message.err != kafka.CODES.ERRORS.ERR_NO_ERROR)) {
+      if ((message.err != undefined) && (message.err != Kafka.CODES.ERRORS.ERR_NO_ERROR)) {
           return;
       }
       console.log("cons) Received message for topic: ", message.topic);
