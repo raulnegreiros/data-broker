@@ -1,8 +1,8 @@
+/* jslint node: true */
 var Kafka = require('node-rdkafka'),
-  config = require('./config'),
-  flattener = require('./json-flattener');
+  config = require('./config');
 
-function createKafkaProducer() {
+function createContext() {
   return new Kafka.Producer({
     'compression.codec': 'snappy',
     'bootstrap.servers': config.kafka.bootstrap,
@@ -12,7 +12,7 @@ function createKafkaProducer() {
   });
 }
 
-function sendMessage(message, kafkaProducer) {
+function sendMessage(kafkaProducer, message) {
   kafkaProducer.produce(
     config.kafka.producer.topic,
     config.kafka.producer.partition,
@@ -22,40 +22,11 @@ function sendMessage(message, kafkaProducer) {
   );
 }
 
-function main() {
-  // Quick explanation:
-  // Kafka is build around four core entities:
-  //  - Producers: almost self-explanatory, these are the elements that, well,
-  //      generate messages to be published.
-  //  - Consumers: the producer counterpart - these elements read messages
-  //  - Streams processors: elements that transform messages between message
-  //      streams, playing a consumer role at one end, doing something to
-  //      those messages and then sending the results to another stream as a
-  //      producer.
-  //  - Connectors: Like "templates" - these elements are reusable producer/
-  //      consumers that connects specific topics to applications.
-  // Now, simply put: messages are published in topics, and they can be
-  // retrieved individually or in chunks of timeslots.
-
-  var kafkaProducer = createKafkaProducer();
-
-  // Connect to the broker manually
+function init(kafkaProducer, initCb) {
   kafkaProducer.connect();
-
-  // Wait for the ready event before proceeding
-  kafkaProducer.on('ready', function () {
-    let obj = {
-      'employee': {
-        'name': 'Giovanni',
-        'age': 33,
-        'height': 1.74
-      }
-    };
-
-    let input = JSON.stringify(flattener.flattenJson('', obj));
-    console.log('prod) Sending message:', input);
-    sendMessage(input, kafkaProducer);
-  });
+  kafkaProducer.on('ready', initCb);
 }
 
-main();
+exports.createContext = createContext;
+exports.sendMessage = sendMessage;
+exports.init = init;

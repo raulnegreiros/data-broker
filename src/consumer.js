@@ -1,4 +1,4 @@
-/*jslint node: true */
+/* jslint node: true */
 "use strict";
 var Kafka = require("node-rdkafka"),
     config = require('./config');
@@ -16,20 +16,6 @@ function createKafkaConsumer() {
 }
 
 function main() {
-  // Quick explanation:
-  // Kafka is build around four core entities:
-  //  - Producers: almost self-explanatory, these are the elements that, well,
-  //      generate messages to be published.
-  //  - Consumers: the producer counterpart - these elements read messages
-  //  - Streams processors: elements that transform messages between message
-  //      streams, playing a consumer role at one end, doing something to
-  //      those messages and then sending the results to another stream as a
-  //      producer.
-  //  - Connectors: Like "templates" - these elements are reusable producer/
-  //      consumers that connects specific topics to applications.
-  // Now, simply put: messages are published in topics, and they can be
-  // retrieved individually or in chunks of timeslots.
-
   var kf_consumer = createKafkaConsumer();
   kf_consumer.connect();
   kf_consumer.on('ready', function() {
@@ -37,7 +23,6 @@ function main() {
     kf_consumer.consume();
   })
   .on('data', function(data) {
-    // Output the actual message contents
     console.log("cons) -----------------");
     console.log("cons) Received a message");
     console.log("cons) Value: ", data.value.toString());

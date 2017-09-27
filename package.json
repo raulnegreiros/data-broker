@@ -20,15 +20,17 @@
   },
   "scripts": {
     "sample-producer": "node src/sample-producer.js",
-    "producer": "node src/producer.js",
+    "start": "node src/iotagent-kafka.js",
     "consumer": "node src/consumer.js",
     "test": "mocha"
   },
   "dependencies": {
+    "async": "^2.5.0",
     "chai": "^4.1.2",
     "eslint": "^4.7.2",
     "jshint": "^2.9.5",
     "mocha": "^3.5.3",
+    "mqtt": "^2.13.0",
     "node-rdkafka": "^1.0.0"
   }
 }
