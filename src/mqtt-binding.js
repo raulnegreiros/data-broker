@@ -25,14 +25,14 @@ function mqttMessageHandler(topic, message) {
   console.log('Content:' + message);
 
   let obj = JSON.parse(message);
-  let flatObj = flattener.flattenJson('', obj);
-
-  flatObj.metadata =  {
-    'topic': topic
+  // This is just a sample - the device ID should be retrieved elsewhere.
+  let flatObj = {
+    attrs: flattener.flattenJson('', obj),
+    metadata: { 'topic': topic, 'protocol' : 'mqtt-json', 'payload' : 'json', 'deviceid' : obj.deviceid, 'type' : 'model-1'}
   };
   let flatMessage = JSON.stringify(flatObj);
 
-  console.log('Sending message...');
+  console.log('Sending message ' + flatMessage);
   kafkaProducer.sendMessage(producerContext, flatMessage);
   console.log('... message sent');
 }

@@ -4,7 +4,7 @@ var Kafka = require("node-rdkafka"),
     config = require('./config');
 
 
-function createKafkaConsumer() {
+function createContext() {
   // Didn't find a way to set the message delivery callback.
   return new Kafka.KafkaConsumer({
     'compression.codec' : 'snappy',
@@ -15,23 +15,16 @@ function createKafkaConsumer() {
   }, {});
 }
 
-function main() {
-  var kf_consumer = createKafkaConsumer();
-  kf_consumer.connect();
-  kf_consumer.on('ready', function() {
-    kf_consumer.subscribe(config.kafka.consumer.topics);
-    kf_consumer.consume();
+function init(kafkaConsumer, initCb) {
+  kafkaConsumer.connect();
+  kafkaConsumer.on('ready', function() {
+    kafkaConsumer.subscribe(config.kafka.consumer.topics);
+    kafkaConsumer.consume();
   })
   .on('data', function(data) {
-    console.log("cons) -----------------");
-    console.log("cons) Received a message");
-    console.log("cons) Value: ", data.value.toString());
-    console.log("cons) Size: ", data.size);
-    console.log("cons) Topic: ", data.topic);
-    console.log("cons) Offset: ", data.offset);
-    console.log("cons) Partition: ", data.partition);
-    console.log("cons) Key: ", data.key);
+    initCb(data);
   });
 }
 
-main();
+exports.init = init;
+exports.createContext = createContext;
