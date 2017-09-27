@@ -18,11 +18,17 @@
   "bugs": {
     "url": "https://github.com/giovannicuriel/rdkafka-demo-nodejs/issues"
   },
-  "bin": {
-    "demo": "src/demo.js"
+  "scripts": {
+    "sample-producer": "node src/sample-producer.js",
+    "producer": "node src/producer.js",
+    "consumer": "node src/consumer.js",
+    "test": "mocha"
   },
-  "main": "src/demo.js",
   "dependencies": {
-    "node-rdkafka": "1.0.0"
+    "chai": "^4.1.2",
+    "eslint": "^4.7.2",
+    "jshint": "^2.9.5",
+    "mocha": "^3.5.3",
+    "node-rdkafka": "^1.0.0"
   }
 }
