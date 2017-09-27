@@ -11,7 +11,7 @@ function createKafkaConsumer() {
       'bootstrap.servers': config.kafka.bootstrap,
       'metadata.broker.list': config.kafka.metadata_broker_list,
       "batch.num.messages" : config.kafka.batch_num_messages,
-      "group.id" : "demo-group-2"
+      "group.id" : "device-group-2"
   }, {}, { 'topics' : ['^all-devic*']});
 }
 

@@ -11,75 +11,28 @@ function createKafkaProducer() {
         'compression.codec' : 'snappy',
         'bootstrap.servers': config.kafka.bootstrap,
         'metadata.broker.list': config.kafka.metadata_broker_list,
-        "batch.num.messages" : config.kafka.batch_num_messages
+        "batch.num.messages" : config.kafka.batch_num_messages,
+        "group.id" : "device-group-1"
     }, {}, {'topic' : config.kafka.topic});
 }
 
 function sendMessage(message, kf_prod_stream) {
-    // // Writes a message to the stream
-    // var ret = kf_prod_stream.write(new Buffer(message));
+    // Writes a message to the stream
+    var ret = kf_prod_stream.write(new Buffer(message));
 
-    // if (ret) {
-    //     console.log('We queued our message!');
-    //     console.log('Return value is ', ret);
-    // } else {
-    //     // Note that this only tells us if the stream's queue is full,
-    //     // it does NOT tell us if the message got to Kafka!  See below...
-    //     console.log('Too many messages in our queue already');
-    // }
+    if (ret) {
+        console.log('We queued our message!');
+        console.log('Return value is ', ret);
+    } else {
+        // Note that this only tells us if the stream's queue is full,
+        // it does NOT tell us if the message got to Kafka!  See below...
+        console.log('Too many messages in our queue already');
+    }
 
-    // kf_prod_stream.on('error', function (err) {
-    //     // Here's where we'll know if something went wrong sending to Kafka
-    //     console.error('Error in our kafka stream');
-    //     console.error(err);
-    // })
-
-
-
-    console.log('Creating producer...');
-    var producer = new kafka.Producer({
-      'metadata.broker.list': '172.17.0.2:9092',
-      'dr_cb': true
-    });
-
-    console.log('Producer created.');
-
-    // Connect to the broker manually
-    console.log('Connecting...');
-    producer.connect();
-    console.log('... connected');
-
-    // Wait for the ready event before proceeding
-    producer.on('ready', function() {
-      try {
-        console.log('Sending message...');
-        producer.produce(
-          // Topic to send the message to
-          'supertest',
-          // optionally we can manually specify a partition for the message
-          // this defaults to -1 - which will use librdkafka's default partitioner (consistent random for keyed messages, random for unkeyed messages)
-          0,
-          // Message to send. Must be a buffer
-          new Buffer('Awesome message'),
-          // for keyed messages, we also specify the key - note that this field is optional
-          null,
-          // you can send a timestamp here. If your broker version supports it,
-          // it will get added. Otherwise, we default to 0
-          Date.now()
-          // you can send an opaque token here, which gets passed along
-          // to your delivery reports
-        );
-        console.log('... message sent');
-      } catch (err) {
-        console.error('A problem occurred when sending our message');
+    kf_prod_stream.on('error', function (err) {
+        // Here's where we'll know if something went wrong sending to Kafka
+        console.error('Error in our kafka stream');
         console.error(err);
-      }
-    });
-
-    // Any errors we encounter, including connection errors
-    producer.on('event.error', function(err) {
-      console.error('Error from producer');
-      console.error(err);
     });
 }
 

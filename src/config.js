@@ -3,9 +3,9 @@
 var config = {
   'kafka' : {
     'topic': 'supertest',
-    'bootstrap' : '172.17.0.2',
-    'metadata_broker_list': '172.17.0.2:9092',
-    'batch_num_messages': 1
+    'bootstrap' : 'localhost',
+    'metadata_broker_list': 'localhost:9092',
+    'batch_num_messages': 100
   }
 };
 
