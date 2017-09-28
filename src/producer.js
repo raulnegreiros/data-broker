@@ -12,12 +12,12 @@ function createContext() {
   });
 }
 
-function sendMessage(kafkaProducer, message) {
+function sendMessage(kafkaProducer, message, topic, partition, key) {
   kafkaProducer.produce(
-    config.kafka.producer.topic,
-    config.kafka.producer.partition,
+    topic,
+    partition,
     new Buffer(message),
-    config.kafka.producer.key,
+    key,
     Date.now()
   );
 }

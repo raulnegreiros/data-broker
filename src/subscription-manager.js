@@ -1,90 +1,55 @@
 /* jslint node: true */
 "use strict";
 
-var kafkaConsumer = require('./consumer');
+var engine = require('./subscription-engine');
+var bodyParser = require('body-parser');
+var multer = require('multer'); // v1.0.5
+const express = require('express');
+
+const app = express();
+app.use(bodyParser.json()); // for parsing application/json
+app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
 
-var idSubscriptions = {};
-var typeSubscriptions = {};
-
-
-function evaluateCondition(condition, data) {
-  switch (condition.operator) {
-    case '==':
-    // This test should also be more complete
-      if (data[condition.variable].value === condition.value) {
-        return true;
-      }
-    break;
+app.post('/subscription', function(request, response) {
+  let subscription = request.body;
+  if ('id' in subscription.entities) {
+    engine.addSubscription('id', subscription.entities.id, subscription);
+  } else if ('model' in subscription.entities) {
+    engine.addSubscription('model', subscription.entities.model, subscription);
+  } else if ('type' in subscription.entities) {
+    engine.addSubscription('type', subscription.entities.type, subscription);
   }
+  response.send('Ok!');
+});
 
-  return false;
-}
 
-function init() {
-  let consumerContext = kafkaConsumer.createContext();
-  let subscriptions;
-  kafkaConsumer.init(consumerContext, function (kafkaObj) {
-    let data = JSON.parse(kafkaObj.value.toString());
-    if (data.metadata.deviceid in idSubscriptions) {
-      subscriptions = idSubscriptions[data.metadata.deviceid];
-      for (let i = 0; i < subscriptions.length; i++) {
-        // This test should be more complete - a condition might have more than one
-        // variable
-        if (subscriptions[i].condition.variable in data.attrs) {
-          if (evaluateCondition(subscriptions[i].condition, data.attrs)) {
-            console.log('I should send something to ' + subscriptions[i].destination);
-          }
-        }
-      }
-    }
+app.listen(3500, function() {
+  console.log('Subscription manager listening on port 3500');
+  engine.init();
+});
 
-    if (data.metadata.devicetype in typeSubscriptions) {
-      subscriptions = typeSubscriptions[data.metadata.devicetype];
-      for (let i = 0; i < subscriptions.length; i++) {
-        // This test should be more complete - a condition might have more than one
-        // variable
-        if (subscriptions[i].condition.variable in data) {
-          if (evaluateCondition(subscriptions[i].condition, data)) {
-            console.log('I should send something to ' + subscriptions[i].destination);
-          }
-        }
-      }
-    }
-  });
-}
-
-function parseCondition(condition) {
-  return { variable: 'data.device', operator: '==', value: 'termometro' };
-}
-
-function createSubscription(condition, deviceid, devicetype, destination) {
-
-  let parsedCondition = parseCondition(condition);
-
-  let newSubscription = {
-    'condition': parsedCondition,
-    'deviceid': deviceid,
-    'devicetype': devicetype,
-    'destination': destination
-  };
-
-  if (deviceid != null) {
-    if (!(deviceid in idSubscriptions)) {
-      idSubscriptions[deviceid] = [];
-    }
-    idSubscriptions[deviceid].push(newSubscription);
-  } else if (devicetype != null) {
-    if (!(devicetype in typeSubscriptions)) {
-      typeSubscriptions[devicetype] = [];
-    }
-    typeSubscriptions[devicetype].push(newSubscription);
-  }
-}
-
-// exports.createSubscription = createSubscription;
-// exports.init = init;
-
-createSubscription('lala', 'cafe', null, 'http://172.18.0.1:8081/dev/cafe');
-createSubscription('lala', 'coisa', null, 'http://172.18.0.1:8081/dev/coisa');
-init();
+// function main() {
+//     let subscription = {
+//       'subject' : {
+//         'entities': {
+//           'id' : 'cafe'
+//         },
+//         'condition' : {
+//           'attrs' : ['t.data'],
+//           'expression' : {
+//             'q' : 't.data>=50'
+//           }
+//         }
+//       },
+//       'notification': {
+//         'topic' : 'subscription-xyz',
+//         'attrs': ['t.data']
+//       }
+//     };
+//     console.log('Creating subscription...');
+//     addSubscription('id', 'cafe', subscription);
+//     console.log('... subscription created.');
+//     init();
+//   }
+//   main();

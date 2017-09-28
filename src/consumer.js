@@ -15,10 +15,10 @@ function createContext() {
   }, {});
 }
 
-function init(kafkaConsumer, initCb) {
+function init(kafkaConsumer, topics, initCb) {
   kafkaConsumer.connect();
   kafkaConsumer.on('ready', function() {
-    kafkaConsumer.subscribe(config.kafka.consumer.topics);
+    kafkaConsumer.subscribe(topics);
     kafkaConsumer.consume();
   })
   .on('data', function(data) {
