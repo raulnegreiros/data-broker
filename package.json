@@ -1,10 +1,11 @@
 {
-  "name": "rdkafka-demo-nodejs",
-  "description": "Example using Kafka and a few other libraries",
+  "name": "mqtt-kafka-demo",
+  "description": "Example using Kafka MQTT",
   "version": "0.1.0",
-  "homepage": "https://github.com/giovannicuriel/rdkafka-demo-nodejs",
+  "homepage": "https://github.com/giovannicuriel/mqtt-kafka-demo",
   "keywords": [
     "kafka",
+    "mqtt",
     "demo"
   ],
   "author": {
@@ -13,16 +14,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/giovannicuriel/rdkafka-demo-nodejs.git"
+    "url": "git://github.com/giovannicuriel/mqtt-kafka-demo.git"
   },
   "bugs": {
-    "url": "https://github.com/giovannicuriel/rdkafka-demo-nodejs/issues"
+    "url": "https://github.com/giovannicuriel/mqtt-kafka-demo/issues"
   },
   "scripts": {
     "iotagent": "node build/iotagent-kafka.js",
     "subscription": "node build/subscription-manager.js",
     "listener": "node build/kafka-listener.js",
-    "test": "echo 1"
+    "test": "echo 1",
+    "build": "tsc"
   },
   "dependencies": {
     "@types/async": "^2.0.43",
