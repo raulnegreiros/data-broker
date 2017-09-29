@@ -39,7 +39,6 @@
     "kafka-node": "^2.2.3",
     "mqtt": "^2.13.0",
     "tsconfig": "^7.0.0",
-    "typescript": "^2.5.3",
-    "typings": "^2.1.1"
+    "typescript": "^2.5.3"
   }
 }
