@@ -225,7 +225,7 @@ function init() {
   console.log('... producer context was initialized.');
 
   console.log('Initializing consumer context... ');
-  kafkaConsumer.init(consumerContext, config.kafka.consumer.topics, function (kafkaObj) {
+  kafkaConsumer.init(consumerContext, config.kafka.consumerTopics, function (kafkaObj) {
     if (isReady === true) {
       console.log('New data arrived!');
       let data = JSON.parse(kafkaObj.value.toString());

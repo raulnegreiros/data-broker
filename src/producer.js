@@ -1,31 +1,41 @@
 /* jslint node: true */
-var Kafka = require('node-rdkafka'),
-  config = require('./config');
+var kafka = require('kafka-node'),
+    config = require('./config');
+
 
 function createContext() {
-  return new Kafka.Producer({
-    'compression.codec': 'snappy',
-    'bootstrap.servers': config.kafka.bootstrap,
-    'metadata.broker.list': config.kafka.metadata_broker_list,
-    'batch.num.messages': config.kafka.batch_num_messages,
-    'dr_cb': true
+  let client = new kafka.Client(config.kafka.zookeeper);
+  return new kafka.HighLevelProducer(client, { requireAcks: 1 });
+}
+
+function init(context, initCb) {
+  context.on('ready', function () {
+    initCb();
+  });
+
+  context.on('error', function (err) {
+    console.log('error', err);
   });
 }
 
-function sendMessage(kafkaProducer, message, topic, partition, key) {
-  kafkaProducer.produce(
-    topic,
-    partition,
-    new Buffer(message),
-    key,
-    Date.now()
-  );
+function sendMessage(context, message, topic, partition, key) {
+  let msgPayload;
+  if (key != null) {
+    msgPayload = new kafka.KeyedMessage(key, message);
+  } else {
+    msgPayload = message;
+  }
+
+  let contextMessage = {
+    'topic': topic,
+    'messages': [msgPayload]
+  };
+
+  context.send([contextMessage], function (err, result) {
+    console.log(err || result);
+  });
 }
 
-function init(kafkaProducer, initCb) {
-  kafkaProducer.connect();
-  kafkaProducer.on('ready', initCb);
-}
 
 exports.createContext = createContext;
 exports.sendMessage = sendMessage;

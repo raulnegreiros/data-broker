@@ -9,7 +9,7 @@ var kafkaConsumer = require('./consumer'),
 let consumerContext = kafkaConsumer.createContext();
 
 
-kafkaConsumer.init(consumerContext, ['subscription-xyz'], function(data) {
+kafkaConsumer.init(consumerContext, [{ 'topic' : 'subscription-xyz', 'partition': 0}], function(data) {
   console.log('Received data for:');
   console.log(util.inspect(data, {depth: null}));
   console.log('Payload: ');
