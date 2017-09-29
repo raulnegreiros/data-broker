@@ -7,7 +7,7 @@
  * @param {Simple JS object} obj The object to be cloned
  * @return The clone.
  */
-function cloneSimpleObject(obj) {
+function cloneSimpleObject(obj: any) {
   return JSON.parse(JSON.stringify(obj));
 }
 
@@ -19,7 +19,7 @@ function cloneSimpleObject(obj) {
  * @param {Array} array The array to be changed.
  * @param {*} obj The object to be added
  */
-function addUniqueToArray(array, obj) {
+function addUniqueToArray(array: any[], obj: any) {
   let found = false;
   for (let i in array) {
     if (array[i] === obj) {
@@ -39,7 +39,7 @@ function addUniqueToArray(array, obj) {
  * @param {string} token The token to be used
  * @return {Array} The tokenized string.
  */
-function tokenize(text, token) {
+function tokenize(text: string, token: string) {
   let ret = [];
   let remainder = text;
 
@@ -83,7 +83,7 @@ function tokenize(text, token) {
  * @param {string} path The path to be added
  * @param {*} value The value to be associated to this path
  */
-function objectify(obj, path, value) {
+function objectify(obj: any, path: string[], value: any) {
   if (path.length == 1) {
     obj[path[0]] = value;
   } else {
@@ -107,14 +107,13 @@ function objectify(obj, path, value) {
  * @param {string} keyword The keyword which will mark the beginning of the remaining string.
  * @return The remainder of the string, without the keywork.
  */
-function trimProperty(property, keyword) {
+function trimProperty(property: string, keyword: string) {
   var payloadLength = keyword.length;
   return property.slice(property.indexOf(keyword) + payloadLength);
 }
 
-exports.cloneSimpleObject = cloneSimpleObject;
-exports.trimProperty = trimProperty;
-exports.objectify = objectify;
-exports.tokenize = tokenize;
-exports.addUniqueToArray = addUniqueToArray;
-exports.cloneSimpleObject = cloneSimpleObject;
+export {trimProperty};
+export {objectify};
+export {tokenize};
+export {addUniqueToArray};
+export {cloneSimpleObject};

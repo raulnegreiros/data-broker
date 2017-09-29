@@ -1,16 +1,121 @@
 /* jslint node: true */
 "use strict";
 
-var tools = require('./simple-tools'),
-    config = require('./config');
+import tools = require('./simple-tools');
+import config = require('./config');
+import util = require('util');
 
-var kafkaConsumer = require('./consumer'),
-    kafkaProducer = require('./producer');
+import kafkaConsumer = require('./consumer');
+import kafkaProducer = require('./producer');
 
 
-var registeredSubscriptions = {
+class Condition {
+  attrs: string[];
+  expression: {
+    q: string | null;
+    mq: string | null;
+    georel: 'convered-by' | 'intersects' | null;
+    geometry: 'point' | 'polygon' | null;
+    coords: string[] | null;
+  }
+}
+
+class Notification {
+  topic: string;
+  attrs: string[];
+}
+
+class Subscription {
+  id: string;
+  subject: {
+    entities: {
+      id: string;
+      idPattern: string;
+      model: string;
+      modelPattern: string;
+      type: string;
+      typePattern: string;
+    };
+    condition: Condition | null;
+  };
+  notification: Notification;
+
+
+  constructor() {
+    this.id = '';
+    this.subject = {
+      entities: {
+        id: '',
+        idPattern: '',
+        model: '',
+        modelPattern: '',
+        type: '',
+        typePattern: '',
+      },
+      condition: null
+    };
+    this.notification = new Notification();
+  }
+}
+
+class Event {
+  // Metadata might be 'any' as well.
+  metadata: {
+    topic: string | null;
+    protocol: string;
+    payload: string;
+    deviceid: string;
+    type: string;
+    model: string;
+  };
+  attrs: any;
+
+  constructor(data: any) {
+    this.metadata = {
+      topic: data.metadata.topic,
+      protocol: data.metadata.protocol,
+      payload: data.metadata.payload,
+      deviceid: data.metadata.deviceid,
+      type: data.metadata.type,
+      model: data.metadata.model
+    };
+    this.attrs = data.attrs;
+  };
+};
+
+type Action = {
+  'topic' : string;
+  'data' : any;
+};
+
+
+
+type RegisteredSubscriptions = {
   // Key: SubscriptionID, value: subscription data (all subscriptions)
-  'flat' : { },
+  'flat': {
+    [key: string]: any
+  },
+
+  // Subscriptions based on device ID
+  'id': {
+    [key: string]: any
+  },
+
+  // Subscriptions based on device model
+  'model': {
+    [key: string]: any
+  },
+
+  // Subscriptions based on device type
+  'type': {
+    [key: string]: any
+  },
+}
+
+
+var registeredSubscriptions: RegisteredSubscriptions = {
+  // Key: SubscriptionID, value: subscription data (all subscriptions)
+  'flat' : {},
 
   // Subscriptions based on device ID
   'id' : {},
@@ -22,11 +127,14 @@ var registeredSubscriptions = {
   'type' : {}
 };
 
-var producerContext;
+
+
+
+var producerContext: kafkaProducer.Context;
 
 var operators = ['==', '!=', '>=', '<=', '~=', '>', '<' ];
 
-function evaluateLogicCondition(condition, data) {
+function evaluateLogicCondition(condition: string, data: any) {
   let ret = true;
 
   let logicTests = tools.tokenize(condition, ';');
@@ -39,31 +147,31 @@ function evaluateLogicCondition(condition, data) {
         // There's something here
         switch (operators[j]) {
           case '==':
-            ret &= (data[logicTokens[0]].value == logicTokens[1]);
+            ret = ret && (data[logicTokens[0]].value == logicTokens[1]);
             found = true;
             break;
           case '!=':
-            ret &= (data[logicTokens[0]].value != logicTokens[1]);
+            ret = ret && (data[logicTokens[0]].value != logicTokens[1]);
             found = true;
             break;
           case '>':
-            ret &= (data[logicTokens[0]].value > parseFloat(logicTokens[1]));
+            ret = ret && (data[logicTokens[0]].value > parseFloat(logicTokens[1]));
             found = true;
             break;
           case '>=':
-            ret &= (data[logicTokens[0]].value >= parseFloat(logicTokens[1]));
+            ret = ret && (data[logicTokens[0]].value >= parseFloat(logicTokens[1]));
             found = true;
             break;
           case '<':
-            ret &= (data[logicTokens[0]].value < parseFloat(logicTokens[1]));
+            ret = ret && (data[logicTokens[0]].value < parseFloat(logicTokens[1]));
             found = true;
             break;
           case '<=':
-            ret &= (data[logicTokens[0]].value <= parseFloat(logicTokens[1]));
+            ret = ret && (data[logicTokens[0]].value <= parseFloat(logicTokens[1]));
             found = true;
             break;
           case '~=':
-            ret &= (logicTokens[1].exec(data[logicTokens[0]].value).length != 0);
+            // ret = ret && (logicTokens[1].exec(data[logicTokens[0]].value).length != 0);
             found = true;
             break;
         }
@@ -80,50 +188,49 @@ function evaluateLogicCondition(condition, data) {
   return ret;
 }
 
-function evaluateMetaCondition(condition, data) {
+function evaluateMetaCondition(condition: string, data: any) {
   let ret = true;
   // TODO
   return ret;
 }
 
-function evaluateGeoCondition(georel, geometry, coords, data) {
+function evaluateGeoCondition(georel: string, geometry: string, coords: string, data: any) {
   let ret = true;
   // TODO
   return ret;
 }
 
-function evaluateCondition(condition, data) {
+function evaluateCondition(condition: any, data: any) {
   let ret = true;
 
   if ('q' in condition) {
-    ret &= evaluateLogicCondition(condition.q, data);
+    ret = ret && evaluateLogicCondition(condition.q, data);
   }
 
   if ('mq' in condition) {
-    ret &= evaluateMetaCondition(condition.mq, data);
+    ret = ret && evaluateMetaCondition(condition.mq, data);
   }
 
   if ('georel' in condition) {
-    ret &= evaluateGeoCondition(condition.georel, condition.geometry, condition.coords, data);
+    ret = ret && evaluateGeoCondition(condition.georel, condition.geometry, condition.coords, data);
   }
 
   return ret;
 }
 
-function addSubscription(type, key, subscription) {
+function addSubscription(type: 'model' | 'type' | 'id', key: string, subscription: Subscription) {
   registeredSubscriptions.flat[subscription.id] = subscription;
   if (!(key in registeredSubscriptions[type])) {
     registeredSubscriptions[type][key] = [];
   }
   registeredSubscriptions[type][key].push(subscription);
-  kafkaProducer.createTopics(producerContext, [subscription.notification.topic]);
+  if (subscription.notification != null) {
+    kafkaProducer.createTopics(producerContext, [subscription.notification.topic]);
+  }
 }
 
-function generateOutputData(obj, notification) {
-  let ret = {
-    'topic' : notification.topic,
-    'data' : {}
-  };
+function generateOutputData(obj: Event, notification: Notification) : Action{
+  let ret: Action = { 'topic': notification.topic, data: {}};
 
   // notification.attrs contains all the attributes that must be
   // forwarded to output.
@@ -139,21 +246,21 @@ function generateOutputData(obj, notification) {
 }
 
 
-function checkSubscriptions(obj, subscriptions) {
-  let actions = [];
+function checkSubscriptions(obj: Event, subscriptions: Subscription[]) : Action[] {
+  let actions: Action[] = [];
 
   for (let i = 0; i < subscriptions.length; i++) {
-    if ('condition' in subscriptions[i].subject) {
-      if ('attrs' in subscriptions[i].subject.condition) {
+    if (subscriptions[i].subject.condition != null) {
+      if (subscriptions[i].subject.condition!.attrs != null) {
         // This subscription has some associated attributes, let's check them
-        let subscAttrs = subscriptions[i].subject.condition.attrs;
+        let subscAttrs = subscriptions[i].subject.condition!.attrs;
         for (let j = 0; j < subscAttrs.length; j++) {
-          if (subscriptions[i].subject.condition.attrs[j] in obj.attrs) {
+          if (subscriptions[i].subject.condition!.attrs[j] in obj.attrs) {
             // This subscription should be evaluated;
-            if ('expression' in subscriptions[i].subject.condition) {
+            if (subscriptions[i].subject.condition!.expression != null) {
               // TODO Gather all data from the device - the condition might use a few
               // variables that were not registered with this subscription
-              if (evaluateCondition(subscriptions[i].subject.condition.expression, obj.attrs)) {
+              if (evaluateCondition(subscriptions[i].subject.condition!.expression, obj.attrs)) {
                 console.log('I should send something to ' + subscriptions[i].notification.topic);
                 actions.push(generateOutputData(obj, subscriptions[i].notification));
               }
@@ -180,9 +287,9 @@ function checkSubscriptions(obj, subscriptions) {
   return actions;
 }
 
-function processNotification(obj) {
+function processEvent(obj: Event) {
   let subscriptions;
-  let actions = [];
+  let actions: Action[] = [];
 
   // Check whether there's any subscriptions to this device id
   if (obj.metadata.deviceid in registeredSubscriptions.id) {
@@ -207,14 +314,14 @@ function processNotification(obj) {
 
   // Execute all actions
   for (let i = 0; i < actions.length; i++) {
-    kafkaProducer.sendMessage(producerContext, JSON.stringify(actions[i].data), actions[i].topic, null, null);
+    kafkaProducer.sendMessage(producerContext, JSON.stringify(actions[i].data), actions[i].topic, -1, '');
   }
 }
 
 function init() {
   console.log('Initializing subscription engine...');
   console.log('Creating consumer and producer contexts...');
-  let consumerContext = kafkaConsumer.createContext();
+  let consumerContext = kafkaConsumer.createContext('subscription-engine');
   producerContext = kafkaProducer.createContext();
   console.log('... both context were created.');
 
@@ -230,7 +337,9 @@ function init() {
     if (isReady === true) {
       console.log('New data arrived!');
       let data = JSON.parse(kafkaObj.value.toString());
-      processNotification(data);
+      console.log('Data: ' + util.inspect(data, {depth: null}));
+      let notification = new Event(data);
+      processEvent(notification);
     }
   });
   console.log('... consumer context was initialized.');
@@ -238,5 +347,5 @@ function init() {
   console.log('... subscription engine initialized.');
 }
 
-exports.init = init;
-exports.addSubscription = addSubscription;
+export {init};
+export {addSubscription};

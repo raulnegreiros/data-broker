@@ -19,17 +19,27 @@
     "url": "https://github.com/giovannicuriel/rdkafka-demo-nodejs/issues"
   },
   "scripts": {
-    "iotagent": "node src/iotagent-kafka.js",
-    "subscription": "node src/subscription-manager.js",
-    "listener": "node src/kafka-listener.js"
+    "iotagent": "node build/iotagent-kafka.js",
+    "subscription": "node build/subscription-manager.js",
+    "listener": "node build/kafka-listener.js",
+    "test": "echo 1"
   },
   "dependencies": {
+    "@types/async": "^2.0.43",
+    "@types/body-parser": "^1.16.5",
+    "@types/express": "^4.0.37",
+    "@types/kafka-node": "^2.0.3",
+    "@types/mqtt": "0.0.34",
+    "@types/node": "^8.0.31",
     "async": "^2.5.0",
     "body-parser": "^1.18.2",
     "eslint": "^4.7.2",
     "express": "^4.16.0",
     "jshint": "^2.9.5",
     "kafka-node": "^2.2.3",
-    "mqtt": "^2.13.0"
+    "mqtt": "^2.13.0",
+    "tsconfig": "^7.0.0",
+    "typescript": "^2.5.3",
+    "typings": "^2.1.1"
   }
 }

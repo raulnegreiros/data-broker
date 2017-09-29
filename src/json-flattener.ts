@@ -1,8 +1,5 @@
-/* jshint node: true */
-"use strict";
-
-function flattenJson(preamble, document, ret) {
-  if (ret == undefined) {
+function flattenJson(preamble: string, document: any, ret: any) {
+  if (ret == null) {
     ret = {};
   }
   for (let attribute in document) {
@@ -23,4 +20,4 @@ function flattenJson(preamble, document, ret) {
   return ret;
 }
 
-exports.flattenJson = flattenJson;
+export {flattenJson};
