@@ -116,6 +116,7 @@ function addSubscription(type, key, subscription) {
     registeredSubscriptions[type][key] = [];
   }
   registeredSubscriptions[type][key].push(subscription);
+  kafkaProducer.createTopics(producerContext, [subscription.notification.topic]);
 }
 
 function generateOutputData(obj, notification) {

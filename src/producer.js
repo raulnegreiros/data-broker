@@ -36,7 +36,12 @@ function sendMessage(context, message, topic, partition, key) {
   });
 }
 
+function createTopics(context, topics) {
+  context.createTopics(topics, function (err, data) {
+  });
+}
 
 exports.createContext = createContext;
 exports.sendMessage = sendMessage;
+exports.createTopics = createTopics;
 exports.init = init;

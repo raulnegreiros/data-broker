@@ -22,5 +22,11 @@ function init(context, topics, initCb) {
   });
 }
 
+function createTopics(context, topics) {
+  context.createTopics(topics, function (err, data) {
+  });
+}
+
 exports.init = init;
 exports.createContext = createContext;
+exports.createTopics = createTopics;

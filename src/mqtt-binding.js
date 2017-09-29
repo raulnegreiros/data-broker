@@ -95,6 +95,14 @@ function start(callback) {
   console.log('Initializing kafka producer...');
   kafkaProducer.init(producerContext, function() {
     console.log('... kafka producer initialized');
+    console.log('Creating kafka topics...');
+    let topics = [];
+    for (let i = 0; i < config.kafka.consumerTopics.length; i++) {
+      topics.push(config.kafka.consumerTopics[i].topic);
+    }
+    kafkaProducer.createTopics(producerContext, topics);
+    console.log('... kafka topics were created.');
+
     console.log('Configuring MQTT connection...');
     let mqttConfig = buildMqttConfig();
     let mqttClient = mqtt.connect(mqttConfig.url, mqttConfig.options);
