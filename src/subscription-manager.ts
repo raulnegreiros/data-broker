@@ -5,13 +5,19 @@ import engine = require('./subscription-engine');
 import bodyParser = require('body-parser');
 import express = require('express');
 import util = require('util');
+import {AuthRequest, authEnforce, authParse} from './api/authMiddleware';
+import {TopicManager} from './topicManager';
 
 const app = express();
+app.use(authParse);
+app.use(authEnforce);
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
-
-app.post('/subscription', function(request: express.Request, response: express.Response) {
+/*
+ * Subscription management endpoints
+ */
+app.post('/subscription', function (request: AuthRequest, response: express.Response) {
   console.log('Body: ' + util.inspect(request.body, {depth: null}));
   let subscription = request.body;
   if ('id' in subscription.subject.entities) {
@@ -24,6 +30,17 @@ app.post('/subscription', function(request: express.Request, response: express.R
   response.send('Ok!');
 });
 
+/*
+ * Topic registry endpoints
+ */
+
+app.get('/topic/:subject', function(req: AuthRequest, response: express.Response) {
+  let topics = new TopicManager(req.service);
+  topics.getCreateTopic(req.params.subject, (error: any, data: any) => {
+    if (error) { console.log('failed to retrieve topic', error); }
+    return response.send('done');
+  })
+});
 
 app.listen(3500, function() {
   console.log('Subscription manager listening on port 3500');

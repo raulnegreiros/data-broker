@@ -1,14 +1,17 @@
 let kafka = {
-  'zookeeper': '172.17.0.2:2181',
+  'zookeeper': 'zookeeper:2181',
+  'kafka': 'kafka:9092',
   'producer': {
     'topic': 'all-devices',
     'partition': -1,
     'key': ''
   },
   'consumer': {
-    'autoCommit': true,
+    'autoCommit' : true,
     'fetchMaxWaitMs' : 1000,
-    'fetchMaxBytes' : 1048576
+    'fetchMaxBytes' : 1048576,
+    'group' : 'subscription-engine',
+    'id' : 'consumer-1'
   },
   'consumerTopics': [
     { 'topic' : 'all-devices', 'partition' : -1}
