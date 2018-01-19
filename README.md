@@ -6,7 +6,7 @@ provided by FIWARE orion context broker.
 
 ## How to build
 
-Being writen in TypeScript, one can use npm's configured scripts to build this:
+Being written in TypeScript, one can use npm's configured scripts to build this:
 
 ```shell
 # installs all dependencies
