@@ -1,8 +1,12 @@
 FROM node:8
 
-COPY . /opt/subscription-manager/
 WORKDIR /opt/subscription-manager
 
-RUN npm install && npm run-script build
+COPY package.json .
+COPY package-lock.json .
+RUN npm install
 
-ENTRYPOINT npm run subscription
+COPY . .
+RUN npm run-script build
+
+CMD ['npm', 'run', 'subscription']
