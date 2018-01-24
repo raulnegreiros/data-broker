@@ -9,4 +9,4 @@ RUN npm install
 COPY . .
 RUN npm run-script build
 
-CMD ['npm', 'run', 'subscription']
+CMD ["npm", "run", "subscription"]
