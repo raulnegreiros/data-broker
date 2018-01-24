@@ -88,8 +88,6 @@ type Action = {
   'data' : any;
 };
 
-
-
 type RegisteredSubscriptions = {
   // Key: SubscriptionID, value: subscription data (all subscriptions)
   'flat': {
@@ -126,9 +124,6 @@ var registeredSubscriptions: RegisteredSubscriptions = {
   // Subscriptions based on device type
   'type' : {}
 };
-
-
-
 
 var producerContext: kafkaProducer.Context;
 
@@ -335,11 +330,23 @@ function init() {
   console.log('Initializing consumer context... ');
   kafkaConsumer.init(consumerContext, config.kafka.consumerTopics, function (kafkaObj) {
     if (isReady === true) {
-      console.log('New data arrived!');
-      let data = JSON.parse(kafkaObj.value.toString());
-      console.log('Data: ' + util.inspect(data, {depth: null}));
-      let notification = new Event(data);
-      processEvent(notification);
+      let data = "";
+      // console.log('New data arrived!');
+      try {
+        data = JSON.parse(kafkaObj.value.toString());
+        console.log('Data: ' + util.inspect(data, {depth: null}));
+        processEvent(new Event(data));
+      } catch (err){
+        if (err instanceof TypeError) {
+          console.error('Received data is not a valid event: %s', kafkaObj.value.toString());
+        }
+
+        if (err instanceof SyntaxError) {
+          console.error('Failed to parse event as JSON: %s', kafkaObj.value.toString());
+        }
+        return;
+      }
+
     }
   });
   console.log('... consumer context was initialized.');
