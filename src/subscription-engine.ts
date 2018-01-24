@@ -6,8 +6,7 @@ import config = require('./config');
 import util = require('util');
 
 import kafkaConsumer = require('./consumer');
-import kafkaProducer = require('./producer');
-
+import {KafkaProducer} from './producer';
 
 class Condition {
   attrs: string[];
@@ -125,7 +124,7 @@ var registeredSubscriptions: RegisteredSubscriptions = {
   'type' : {}
 };
 
-var producerContext: kafkaProducer.Context;
+var producer: KafkaProducer;
 
 var operators = ['==', '!=', '>=', '<=', '~=', '>', '<' ];
 
@@ -220,7 +219,7 @@ function addSubscription(type: 'model' | 'type' | 'id', key: string, subscriptio
   }
   registeredSubscriptions[type][key].push(subscription);
   if (subscription.notification != null) {
-    kafkaProducer.createTopics(producerContext, [subscription.notification.topic]);
+    producer.createTopics([subscription.notification.topic]);
   }
 }
 
@@ -309,7 +308,7 @@ function processEvent(obj: Event) {
 
   // Execute all actions
   for (let i = 0; i < actions.length; i++) {
-    kafkaProducer.sendMessage(producerContext, JSON.stringify(actions[i].data), actions[i].topic, -1, '');
+    producer.send(JSON.stringify(actions[i].data), actions[i].topic);
   }
 }
 
@@ -317,15 +316,15 @@ function init() {
   console.log('Initializing subscription engine...');
   console.log('Creating consumer and producer contexts...');
   let consumerContext = kafkaConsumer.createContext('subscription-engine');
-  producerContext = kafkaProducer.createContext();
+  producer = new kafkaProducer.KafkaProducer();
   console.log('... both context were created.');
 
   let isReady = false;
   console.log('Initializing producer context... ');
-  kafkaProducer.init(producerContext, function() {
+  producer.init(function() {
     isReady = true;
+    console.log('... producer context was initialized.');
   });
-  console.log('... producer context was initialized.');
 
   console.log('Initializing consumer context... ');
   kafkaConsumer.init(consumerContext, config.kafka.consumerTopics, function (kafkaObj) {
