@@ -5,7 +5,8 @@ import tools = require('./simple-tools');
 import config = require('./config');
 import util = require('util');
 
-import kafkaConsumer = require('./consumer');
+import kafka = require('kafka-node');
+import {KafkaConsumer} from './consumer';
 import {KafkaProducer} from './producer';
 
 class Condition {
@@ -315,8 +316,8 @@ function processEvent(obj: Event) {
 function init() {
   console.log('Initializing subscription engine...');
   console.log('Creating consumer and producer contexts...');
-  let consumerContext = kafkaConsumer.createContext('subscription-engine');
-  producer = new kafkaProducer.KafkaProducer();
+  let subscriber = new KafkaConsumer();
+  producer = new KafkaProducer();
   console.log('... both context were created.');
 
   let isReady = false;
@@ -327,25 +328,31 @@ function init() {
   });
 
   console.log('Initializing consumer context... ');
-  kafkaConsumer.init(consumerContext, config.kafka.consumerTopics, function (kafkaObj) {
+  subscriber.subscribe(config.kafka.consumerTopics, (err:any, message: kafka.Message) => {
+    if (err) {
+      // TODO handle this better
+      console.error('Failed to create subscriber');
+    }
+
     if (isReady === true) {
-      let data = "";
-      // console.log('New data arrived!');
+      let data: string;
+      console.log('New data arrived!');
       try {
-        data = JSON.parse(kafkaObj.value.toString());
+        data = JSON.parse(message.value);
         console.log('Data: ' + util.inspect(data, {depth: null}));
         processEvent(new Event(data));
       } catch (err){
         if (err instanceof TypeError) {
-          console.error('Received data is not a valid event: %s', kafkaObj.value.toString());
+          console.error('Received data is not a valid event: %s', message.value);
         }
 
         if (err instanceof SyntaxError) {
-          console.error('Failed to parse event as JSON: %s', kafkaObj.value.toString());
+          console.error('Failed to parse event as JSON: %s', message.value);
         }
         return;
       }
-
+    } else {
+      console.error('Got kafka event before being ready to process it')
     }
   });
   console.log('... consumer context was initialized.');
