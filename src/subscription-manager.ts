@@ -52,6 +52,6 @@ app.get('/topic/:subject', function(req: AuthRequest, response: express.Response
   })
 });
 
-app.listen(3500, function() {
-  console.log('Subscription manager listening on port 3500');
+app.listen(80, function() {
+  console.log('Subscription manager listening on port 80');
 });
