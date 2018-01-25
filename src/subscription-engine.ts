@@ -88,6 +88,12 @@ type Action = {
   'data' : any;
 };
 
+export enum SubscriptionType {
+  model = 'model',
+  type = 'type',
+  id = 'id'
+}
+
 type RegisteredSubscriptions = {
   // Key: SubscriptionID, value: subscription data (all subscriptions)
   'flat': {
@@ -240,7 +246,6 @@ function generateOutputData(obj: Event, notification: Notification) : Action{
   return ret;
 }
 
-
 function checkSubscriptions(obj: Event, subscriptions: Subscription[]) : Action[] {
   let actions: Action[] = [];
 
@@ -313,52 +318,110 @@ function processEvent(obj: Event) {
   }
 }
 
-function init() {
-  console.log('Initializing subscription engine...');
-  console.log('Creating consumer and producer contexts...');
-  let subscriber = new KafkaConsumer();
-  producer = new KafkaProducer();
-  console.log('... both context were created.');
+// function init() {
+//   console.log('Initializing subscription engine...');
+//   console.log('Creating consumer and producer contexts...');
+//   let subscriber = new KafkaConsumer();
+//   producer = new KafkaProducer();
+//   console.log('... both context were created.');
+//
+//   let isReady = false;
+//   console.log('Initializing producer context... ');
+//   producer.init(function() {
+//     isReady = true;
+//     console.log('... producer context was initialized.');
+//   });
+//
+//   console.log('Initializing consumer context... ');
+//   subscriber.subscribe(config.kafka.consumerTopics, (err:any, message: kafka.Message) => {
+//     if (err) {
+//       // TODO handle this better
+//       console.error('Failed to create subscriber');
+//     }
+//
+//     if (isReady === true) {
+//       let data: string;
+//       console.log('New data arrived!');
+//       try {
+//         data = JSON.parse(message.value);
+//         console.log('Data: ' + util.inspect(data, {depth: null}));
+//         processEvent(new Event(data));
+//       } catch (err){
+//         if (err instanceof TypeError) {
+//           console.error('Received data is not a valid event: %s', message.value);
+//         }
+//
+//         if (err instanceof SyntaxError) {
+//           console.error('Failed to parse event as JSON: %s', message.value);
+//         }
+//         return;
+//       }
+//     } else {
+//       console.error('Got kafka event before being ready to process it')
+//     }
+//   });
+//   console.log('... consumer context was initialized.');
+//
+//   console.log('... subscription engine initialized.');
+// }
 
-  let isReady = false;
-  console.log('Initializing producer context... ');
-  producer.init(function() {
-    isReady = true;
-    console.log('... producer context was initialized.');
-  });
+export class SubscriptionEngine {
+  producer: KafkaProducer
+  producerReady: boolean
 
-  console.log('Initializing consumer context... ');
-  subscriber.subscribe(config.kafka.consumerTopics, (err:any, message: kafka.Message) => {
+  subscriber: KafkaConsumer
+
+  constructor() {
+    console.log('Initializing subscription engine...');
+    this.producerReady = false;
+    this.producer = new KafkaProducer(undefined, () => {
+      this.producerReady = true;
+    });
+
+    this.subscriber = new KafkaConsumer();
+
+    this.handleEvent.bind(this);
+  }
+
+  handleEvent(err: any, message: kafka.Message){
     if (err) {
-      // TODO handle this better
-      console.error('Failed to create subscriber');
+      console.error('Subscriber reported error', err);
+      return;
     }
 
-    if (isReady === true) {
-      let data: string;
-      console.log('New data arrived!');
-      try {
-        data = JSON.parse(message.value);
-        console.log('Data: ' + util.inspect(data, {depth: null}));
-        processEvent(new Event(data));
-      } catch (err){
-        if (err instanceof TypeError) {
-          console.error('Received data is not a valid event: %s', message.value);
-        }
+    if (this.producerReady == false) {
+      console.error('Got event before being ready to handle it, ignoring');
+      return;
+    }
 
-        if (err instanceof SyntaxError) {
-          console.error('Failed to parse event as JSON: %s', message.value);
-        }
-        return;
+    let data: string;
+    console.log('New data arrived!');
+    try {
+      data = JSON.parse(message.value);
+      console.log('Data: ' + util.inspect(data, {depth: null}));
+      // processEvent(new Event(data));
+    } catch (err){
+      if (err instanceof TypeError) {
+        console.error('Received data is not a valid event: %s', message.value);
+      } else if (err instanceof SyntaxError) {
+        console.error('Failed to parse event as JSON: %s', message.value);
       }
-    } else {
-      console.error('Got kafka event before being ready to process it')
     }
-  });
-  console.log('... consumer context was initialized.');
+  }
 
-  console.log('... subscription engine initialized.');
+  addIngestionChannel(topic: string[]) {
+    let kafkaTopics: kafka.Topic[] = [];
+    for (let i in topic) {
+      kafkaTopics.push({'topic': i});
+    }
+    this.subscriber.subscribe(kafkaTopics, this.handleEvent);
+  }
+
+  addSubscription(type: SubscriptionType, key: string, subscription: Subscription){
+    // TODO refactor
+    return;
+  }
 }
 
-export {init};
-export {addSubscription};
+// export {init};
+// export {addSubscription};

@@ -4,16 +4,17 @@ import config = require('./config');
 export class KafkaProducer {
   producer: kafka.HighLevelProducer;
 
-  constructor(host?: string) {
-    let kafkaHost = host ? host : config.kafka.kafka;
+  constructor(host?: string, init?: () => void) {
+    console.log('--- init producer');
+    let kafkaHost = host ? host : config.kafka.zookeeper;
     let client = new kafka.Client(kafkaHost);
     this.producer = new kafka.HighLevelProducer(client, {requireAcks: 1});
-  }
-
-  init(initCb: () => void) {
-    this.producer.on('ready', function () {
-      initCb();
-    });
+    this.producer.on('ready', () => {
+      console.log('--- producer done');
+      if (init) {
+        init();
+      }
+    })
   }
 
   send(message: string, topic: string, key?: string){
@@ -35,8 +36,8 @@ export class KafkaProducer {
   }
 
   createTopics(topics: string[], callback?: (err:any, data:any) => void) {
-    if (callback === undefined) {
-      this.producer.createTopics(topics, callback!);
+    if (callback) {
+      this.producer.createTopics(topics, callback);
     } else {
       this.producer.createTopics(topics, () => {});
     }
