@@ -30,12 +30,14 @@ class InvalidTokenError {
 }
 
 export function authParse(req: AuthRequest, res: express.Response, next: express.NextFunction) {
-  if (req.header('authorization') === undefined) {
+  const rawToken = req.header('authorization');
+  if (rawToken === undefined) {
     return next();
   }
 
-  const token = req.header('authorization')!.split('.');
+  const token = rawToken!.split('.');
   if (token.length != 3) {
+    console.error("got invalid request: token is malformed", rawToken);
     return res.status(401).send(new InvalidTokenError());
   }
 
@@ -50,6 +52,7 @@ export function authParse(req: AuthRequest, res: express.Response, next: express
 export function authEnforce(req: AuthRequest, res: express.Response, next: express.NextFunction) {
   if (req.user === undefined || req.user!.trim() === "" ) {
     // valid token must be supplied
+    console.error("got invalid request: user is not defined in token", req.header('authorization'));
     return res.status(401).send(new UnauthorizedError());
   }
 
