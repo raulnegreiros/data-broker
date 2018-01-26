@@ -7,10 +7,7 @@ export var kafka = {
     'fetchMaxBytes' : 1048576,
     'group' : 'subscription-engine',
     'id' : 'consumer-1'
-  },
-  'consumerTopics': [
-    { 'topic' : 'all-devices', 'partition' : -1}
-  ]
+  }
 };
 
 export var broker = {

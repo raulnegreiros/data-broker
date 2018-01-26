@@ -65,7 +65,6 @@ export class TopicManager {
       }
 
       if (request.callback) {
-        console.log('will return', request.topic);
         request.callback(undefined, request.topic);
       }
     })

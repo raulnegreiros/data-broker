@@ -48,7 +48,7 @@ app.get('/topic/:subject', function(req: AuthRequest, response: express.Response
       return response.send({'error': 'failed to process topic'});
     }
 
-    return response.status(200).send({'topic': data});
+    return response.status(200).send(JSON.stringify({'topic': data}));
   })
 });
 

@@ -83,53 +83,26 @@ class Event {
   };
 };
 
-type Action = {
+interface Action {
   'topic' : string;
   'data' : any;
 };
 
-export enum SubscriptionType {
-  model = 'model',
-  type = 'type',
-  id = 'id'
+// Now this is awful, but
+export enum SubscriptionType {model = 'model', type = 'type', id = 'id', flat = 'flat'};
+
+type SubscriptionMap = {[key: string]: any};
+
+interface RegisteredSubscriptions {
+  // This will allow "invalid" types on indirect access to attributes, but we need it for
+  // the compiler to allow indirect (e.g. var[valuePointer] ) attribute reading/writing
+  [k:string]: SubscriptionMap,
+
+  'flat' : SubscriptionMap,
+  'id' : SubscriptionMap,
+  'model' : SubscriptionMap,
+  'type' : SubscriptionMap
 }
-
-type RegisteredSubscriptions = {
-  // Key: SubscriptionID, value: subscription data (all subscriptions)
-  'flat': {
-    [key: string]: any
-  },
-
-  // Subscriptions based on device ID
-  'id': {
-    [key: string]: any
-  },
-
-  // Subscriptions based on device model
-  'model': {
-    [key: string]: any
-  },
-
-  // Subscriptions based on device type
-  'type': {
-    [key: string]: any
-  },
-}
-
-
-var registeredSubscriptions: RegisteredSubscriptions = {
-  // Key: SubscriptionID, value: subscription data (all subscriptions)
-  'flat' : {},
-
-  // Subscriptions based on device ID
-  'id' : {},
-
-  // Subscriptions based on device model
-  'model' : {},
-
-  // Subscriptions based on device type
-  'type' : {}
-};
 
 var producer: KafkaProducer;
 
@@ -219,17 +192,6 @@ function evaluateCondition(condition: any, data: any) {
   return ret;
 }
 
-function addSubscription(type: 'model' | 'type' | 'id', key: string, subscription: Subscription) {
-  registeredSubscriptions.flat[subscription.id] = subscription;
-  if (!(key in registeredSubscriptions[type])) {
-    registeredSubscriptions[type][key] = [];
-  }
-  registeredSubscriptions[type][key].push(subscription);
-  if (subscription.notification != null) {
-    producer.createTopics([subscription.notification.topic]);
-  }
-}
-
 function generateOutputData(obj: Event, notification: Notification) : Action{
   let ret: Action = { 'topic': notification.topic, data: {}};
 
@@ -287,89 +249,13 @@ function checkSubscriptions(obj: Event, subscriptions: Subscription[]) : Action[
   return actions;
 }
 
-function processEvent(obj: Event) {
-  let subscriptions;
-  let actions: Action[] = [];
-
-  // Check whether there's any subscriptions to this device id
-  if (obj.metadata.deviceid in registeredSubscriptions.id) {
-    // There are subscriptions for this device ID
-    subscriptions = registeredSubscriptions.id[obj.metadata.deviceid];
-    actions = actions.concat(checkSubscriptions(obj, subscriptions));
-  }
-
-  // Check whether there's any subscriptions to this model
-  if (obj.metadata.model in registeredSubscriptions.model) {
-    // There are subscriptions for this device ID
-    subscriptions = registeredSubscriptions.model[obj.metadata.model];
-    actions = actions.concat(checkSubscriptions(obj, subscriptions));
-  }
-
-  // Check whether there's any subscriptions to this device type
-  if (obj.metadata.type in registeredSubscriptions.type) {
-    // There are subscriptions for this device ID
-    subscriptions = registeredSubscriptions.type[obj.metadata.type];
-    actions = actions.concat(checkSubscriptions(obj, subscriptions));
-  }
-
-  // Execute all actions
-  for (let i = 0; i < actions.length; i++) {
-    producer.send(JSON.stringify(actions[i].data), actions[i].topic);
-  }
-}
-
-// function init() {
-//   console.log('Initializing subscription engine...');
-//   console.log('Creating consumer and producer contexts...');
-//   let subscriber = new KafkaConsumer();
-//   producer = new KafkaProducer();
-//   console.log('... both context were created.');
-//
-//   let isReady = false;
-//   console.log('Initializing producer context... ');
-//   producer.init(function() {
-//     isReady = true;
-//     console.log('... producer context was initialized.');
-//   });
-//
-//   console.log('Initializing consumer context... ');
-//   subscriber.subscribe(config.kafka.consumerTopics, (err:any, message: kafka.Message) => {
-//     if (err) {
-//       // TODO handle this better
-//       console.error('Failed to create subscriber');
-//     }
-//
-//     if (isReady === true) {
-//       let data: string;
-//       console.log('New data arrived!');
-//       try {
-//         data = JSON.parse(message.value);
-//         console.log('Data: ' + util.inspect(data, {depth: null}));
-//         processEvent(new Event(data));
-//       } catch (err){
-//         if (err instanceof TypeError) {
-//           console.error('Received data is not a valid event: %s', message.value);
-//         }
-//
-//         if (err instanceof SyntaxError) {
-//           console.error('Failed to parse event as JSON: %s', message.value);
-//         }
-//         return;
-//       }
-//     } else {
-//       console.error('Got kafka event before being ready to process it')
-//     }
-//   });
-//   console.log('... consumer context was initialized.');
-//
-//   console.log('... subscription engine initialized.');
-// }
-
 export class SubscriptionEngine {
-  producer: KafkaProducer
-  producerReady: boolean
+  private producer: KafkaProducer;
+  private producerReady: boolean;
 
-  subscriber: KafkaConsumer
+  private subscriber: KafkaConsumer;
+
+  registeredSubscriptions: RegisteredSubscriptions;
 
   constructor() {
     console.log('Initializing subscription engine...');
@@ -381,6 +267,37 @@ export class SubscriptionEngine {
     this.subscriber = new KafkaConsumer();
 
     this.handleEvent.bind(this);
+  }
+
+  processEvent(obj: Event) {
+    let subscriptions;
+    let actions: Action[] = [];
+
+    // Check whether there's any subscriptions to this device id
+    if (obj.metadata.deviceid in this.registeredSubscriptions.id) {
+      // There are subscriptions for this device ID
+      subscriptions = this.registeredSubscriptions.id[obj.metadata.deviceid];
+      actions = actions.concat(checkSubscriptions(obj, subscriptions));
+    }
+
+    // Check whether there's any subscriptions to this model
+    if (obj.metadata.model in this.registeredSubscriptions.model) {
+      // There are subscriptions for this device ID
+      subscriptions = this.registeredSubscriptions.model[obj.metadata.model];
+      actions = actions.concat(checkSubscriptions(obj, subscriptions));
+    }
+
+    // Check whether there's any subscriptions to this device type
+    if (obj.metadata.type in this.registeredSubscriptions.type) {
+      // There are subscriptions for this device ID
+      subscriptions = this.registeredSubscriptions.type[obj.metadata.type];
+      actions = actions.concat(checkSubscriptions(obj, subscriptions));
+    }
+
+    // Execute all actions
+    for (let i = 0; i < actions.length; i++) {
+      producer.send(JSON.stringify(actions[i].data), actions[i].topic);
+    }
   }
 
   handleEvent(err: any, message: kafka.Message){
@@ -399,7 +316,7 @@ export class SubscriptionEngine {
     try {
       data = JSON.parse(message.value);
       console.log('Data: ' + util.inspect(data, {depth: null}));
-      // processEvent(new Event(data));
+      this.processEvent(new Event(data));
     } catch (err){
       if (err instanceof TypeError) {
         console.error('Received data is not a valid event: %s', message.value);
@@ -417,11 +334,14 @@ export class SubscriptionEngine {
     this.subscriber.subscribe(kafkaTopics, this.handleEvent);
   }
 
-  addSubscription(type: SubscriptionType, key: string, subscription: Subscription){
-    // TODO refactor
-    return;
+  addSubscription(type: SubscriptionType, key: string, subscription: Subscription) {
+    this.registeredSubscriptions.flat[subscription.id] = subscription;
+    if (!(key in this.registeredSubscriptions[type])) {
+      this.registeredSubscriptions[type][key] = [];
+    }
+    this.registeredSubscriptions[type][key].push(subscription);
+    if (subscription.notification != null) {
+      this.producer.createTopics([subscription.notification.topic]);
+    }
   }
 }
-
-// export {init};
-// export {addSubscription};
