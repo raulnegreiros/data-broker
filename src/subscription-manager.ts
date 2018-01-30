@@ -1,7 +1,10 @@
 /* jslint node: true */
 "use strict";
 
-import engine = require('./subscription-engine');
+// import engine = require('./subscription-engine');
+
+import {SubscriptionEngine, SubscriptionType} from './subscription-engine';
+
 import bodyParser = require('body-parser');
 import express = require('express');
 import util = require('util');
@@ -14,6 +17,8 @@ app.use(authEnforce);
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
+const engine = new SubscriptionEngine();
+
 /*
  * Subscription management endpoints
  */
@@ -21,11 +26,11 @@ app.post('/subscription', function (request: AuthRequest, response: express.Resp
   console.log('Body: ' + util.inspect(request.body, {depth: null}));
   let subscription = request.body;
   if ('id' in subscription.subject.entities) {
-    engine.addSubscription('id', subscription.subject.entities.id, subscription);
+    engine.addSubscription(SubscriptionType.id, subscription.subject.entities.id, subscription);
   } else if ('model' in subscription.subject.entities) {
-    engine.addSubscription('model', subscription.subject.entities.model, subscription);
+    engine.addSubscription(SubscriptionType.model, subscription.subject.entities.model, subscription);
   } else if ('type' in subscription.subject.entities) {
-    engine.addSubscription('type', subscription.subject.entities.type, subscription);
+    engine.addSubscription(SubscriptionType.type, subscription.subject.entities.type, subscription);
   }
   response.send('Ok!');
 });
@@ -37,12 +42,16 @@ app.post('/subscription', function (request: AuthRequest, response: express.Resp
 app.get('/topic/:subject', function(req: AuthRequest, response: express.Response) {
   let topics = new TopicManager(req.service);
   topics.getCreateTopic(req.params.subject, (error: any, data: any) => {
-    if (error) { console.log('failed to retrieve topic', error); }
-    return response.send('done');
+    if (error) {
+      console.log('failed to retrieve topic', error);
+      response.status(500);
+      return response.send({'error': 'failed to process topic'});
+    }
+
+    return response.status(200).send(JSON.stringify({'topic': data}));
   })
 });
 
-app.listen(3500, function() {
-  console.log('Subscription manager listening on port 3500');
-  engine.init();
+app.listen(80, function() {
+  console.log('Subscription manager listening on port 80');
 });

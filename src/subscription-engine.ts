@@ -5,9 +5,9 @@ import tools = require('./simple-tools');
 import config = require('./config');
 import util = require('util');
 
-import kafkaConsumer = require('./consumer');
-import kafkaProducer = require('./producer');
-
+import kafka = require('kafka-node');
+import {KafkaConsumer} from './consumer';
+import {KafkaProducer} from './producer';
 
 class Condition {
   attrs: string[];
@@ -83,54 +83,28 @@ class Event {
   };
 };
 
-type Action = {
+interface Action {
   'topic' : string;
   'data' : any;
 };
 
+// Now this is awful, but
+export enum SubscriptionType {model = 'model', type = 'type', id = 'id', flat = 'flat'};
 
+type SubscriptionMap = {[key: string]: any};
 
-type RegisteredSubscriptions = {
-  // Key: SubscriptionID, value: subscription data (all subscriptions)
-  'flat': {
-    [key: string]: any
-  },
+interface RegisteredSubscriptions {
+  // This will allow "invalid" types on indirect access to attributes, but we need it for
+  // the compiler to allow indirect (e.g. var[valuePointer] ) attribute reading/writing
+  [k:string]: SubscriptionMap,
 
-  // Subscriptions based on device ID
-  'id': {
-    [key: string]: any
-  },
-
-  // Subscriptions based on device model
-  'model': {
-    [key: string]: any
-  },
-
-  // Subscriptions based on device type
-  'type': {
-    [key: string]: any
-  },
+  'flat' : SubscriptionMap,
+  'id' : SubscriptionMap,
+  'model' : SubscriptionMap,
+  'type' : SubscriptionMap
 }
 
-
-var registeredSubscriptions: RegisteredSubscriptions = {
-  // Key: SubscriptionID, value: subscription data (all subscriptions)
-  'flat' : {},
-
-  // Subscriptions based on device ID
-  'id' : {},
-
-  // Subscriptions based on device model
-  'model' : {},
-
-  // Subscriptions based on device type
-  'type' : {}
-};
-
-
-
-
-var producerContext: kafkaProducer.Context;
+var producer: KafkaProducer;
 
 var operators = ['==', '!=', '>=', '<=', '~=', '>', '<' ];
 
@@ -218,17 +192,6 @@ function evaluateCondition(condition: any, data: any) {
   return ret;
 }
 
-function addSubscription(type: 'model' | 'type' | 'id', key: string, subscription: Subscription) {
-  registeredSubscriptions.flat[subscription.id] = subscription;
-  if (!(key in registeredSubscriptions[type])) {
-    registeredSubscriptions[type][key] = [];
-  }
-  registeredSubscriptions[type][key].push(subscription);
-  if (subscription.notification != null) {
-    kafkaProducer.createTopics(producerContext, [subscription.notification.topic]);
-  }
-}
-
 function generateOutputData(obj: Event, notification: Notification) : Action{
   let ret: Action = { 'topic': notification.topic, data: {}};
 
@@ -244,7 +207,6 @@ function generateOutputData(obj: Event, notification: Notification) : Action{
 
   return ret;
 }
-
 
 function checkSubscriptions(obj: Event, subscriptions: Subscription[]) : Action[] {
   let actions: Action[] = [];
@@ -287,65 +249,99 @@ function checkSubscriptions(obj: Event, subscriptions: Subscription[]) : Action[
   return actions;
 }
 
-function processEvent(obj: Event) {
-  let subscriptions;
-  let actions: Action[] = [];
+export class SubscriptionEngine {
+  private producer: KafkaProducer;
+  private producerReady: boolean;
 
-  // Check whether there's any subscriptions to this device id
-  if (obj.metadata.deviceid in registeredSubscriptions.id) {
-    // There are subscriptions for this device ID
-    subscriptions = registeredSubscriptions.id[obj.metadata.deviceid];
-    actions = actions.concat(checkSubscriptions(obj, subscriptions));
+  private subscriber: KafkaConsumer;
+
+  registeredSubscriptions: RegisteredSubscriptions;
+
+  constructor() {
+    console.log('Initializing subscription engine...');
+    this.producerReady = false;
+    this.producer = new KafkaProducer(undefined, () => {
+      this.producerReady = true;
+    });
+
+    this.subscriber = new KafkaConsumer();
+
+    this.handleEvent.bind(this);
   }
 
-  // Check whether there's any subscriptions to this model
-  if (obj.metadata.model in registeredSubscriptions.model) {
-    // There are subscriptions for this device ID
-    subscriptions = registeredSubscriptions.model[obj.metadata.model];
-    actions = actions.concat(checkSubscriptions(obj, subscriptions));
-  }
+  processEvent(obj: Event) {
+    let subscriptions;
+    let actions: Action[] = [];
 
-  // Check whether there's any subscriptions to this device type
-  if (obj.metadata.type in registeredSubscriptions.type) {
-    // There are subscriptions for this device ID
-    subscriptions = registeredSubscriptions.type[obj.metadata.type];
-    actions = actions.concat(checkSubscriptions(obj, subscriptions));
-  }
-
-  // Execute all actions
-  for (let i = 0; i < actions.length; i++) {
-    kafkaProducer.sendMessage(producerContext, JSON.stringify(actions[i].data), actions[i].topic, -1, '');
-  }
-}
-
-function init() {
-  console.log('Initializing subscription engine...');
-  console.log('Creating consumer and producer contexts...');
-  let consumerContext = kafkaConsumer.createContext('subscription-engine');
-  producerContext = kafkaProducer.createContext();
-  console.log('... both context were created.');
-
-  let isReady = false;
-  console.log('Initializing producer context... ');
-  kafkaProducer.init(producerContext, function() {
-    isReady = true;
-  });
-  console.log('... producer context was initialized.');
-
-  console.log('Initializing consumer context... ');
-  kafkaConsumer.init(consumerContext, config.kafka.consumerTopics, function (kafkaObj) {
-    if (isReady === true) {
-      console.log('New data arrived!');
-      let data = JSON.parse(kafkaObj.value.toString());
-      console.log('Data: ' + util.inspect(data, {depth: null}));
-      let notification = new Event(data);
-      processEvent(notification);
+    // Check whether there's any subscriptions to this device id
+    if (obj.metadata.deviceid in this.registeredSubscriptions.id) {
+      // There are subscriptions for this device ID
+      subscriptions = this.registeredSubscriptions.id[obj.metadata.deviceid];
+      actions = actions.concat(checkSubscriptions(obj, subscriptions));
     }
-  });
-  console.log('... consumer context was initialized.');
 
-  console.log('... subscription engine initialized.');
+    // Check whether there's any subscriptions to this model
+    if (obj.metadata.model in this.registeredSubscriptions.model) {
+      // There are subscriptions for this device ID
+      subscriptions = this.registeredSubscriptions.model[obj.metadata.model];
+      actions = actions.concat(checkSubscriptions(obj, subscriptions));
+    }
+
+    // Check whether there's any subscriptions to this device type
+    if (obj.metadata.type in this.registeredSubscriptions.type) {
+      // There are subscriptions for this device ID
+      subscriptions = this.registeredSubscriptions.type[obj.metadata.type];
+      actions = actions.concat(checkSubscriptions(obj, subscriptions));
+    }
+
+    // Execute all actions
+    for (let i = 0; i < actions.length; i++) {
+      producer.send(JSON.stringify(actions[i].data), actions[i].topic);
+    }
+  }
+
+  handleEvent(err: any, message: kafka.Message){
+    if (err) {
+      console.error('Subscriber reported error', err);
+      return;
+    }
+
+    if (this.producerReady == false) {
+      console.error('Got event before being ready to handle it, ignoring');
+      return;
+    }
+
+    let data: string;
+    console.log('New data arrived!');
+    try {
+      data = JSON.parse(message.value);
+      console.log('Data: ' + util.inspect(data, {depth: null}));
+      this.processEvent(new Event(data));
+    } catch (err){
+      if (err instanceof TypeError) {
+        console.error('Received data is not a valid event: %s', message.value);
+      } else if (err instanceof SyntaxError) {
+        console.error('Failed to parse event as JSON: %s', message.value);
+      }
+    }
+  }
+
+  addIngestionChannel(topic: string[]) {
+    let kafkaTopics: kafka.Topic[] = [];
+    for (let i in topic) {
+      kafkaTopics.push({'topic': i});
+    }
+    this.subscriber.subscribe(kafkaTopics, this.handleEvent);
+  }
+
+  addSubscription(type: SubscriptionType, key: string, subscription: Subscription) {
+    this.registeredSubscriptions.flat[subscription.id] = subscription;
+    if (!(key in this.registeredSubscriptions[type])) {
+      this.registeredSubscriptions[type][key] = [];
+    }
+    this.registeredSubscriptions[type][key].push(subscription);
+    if (subscription.notification != null) {
+      this.producer.createTopics([subscription.notification.topic]);
+    }
+  }
 }
-
-export {init};
-export {addSubscription};

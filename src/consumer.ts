@@ -1,33 +1,32 @@
 import kafka = require('kafka-node');
 import config = require('./config');
 
-class Context {
-  client: kafka.Client;
+export class KafkaConsumer {
+  host: string
+  id: string | undefined
+  info: kafka.ConsumerOptions
+  consumer: kafka.HighLevelConsumer
 
-  constructor(obj: kafka.Client) {
-    this.client = obj;
+  constructor(clientid?: string, host?: string, info?: kafka.ConsumerOptions) {
+    this.host = host ? host : config.kafka.kafka;
+    this.info = info ? info : config.kafka.consumer;
+    this.id = clientid;
+  }
+
+  subscribe(topics: kafka.Topic[], onMessage?: (error?: any, data?: kafka.Message) => void): void {
+    let client = new kafka.Client(this.host, this.id);
+    this.consumer = new kafka.HighLevelConsumer(client, topics, this.info);
+    this.consumer.on('message', (data: kafka.Message) => {
+      if (onMessage) {
+        onMessage(undefined, data);
+      }
+    });
+
+    this.consumer.on('error', (error: any) => {
+      console.error('Consumer [%s] has errored', this.info.groupId, error);
+      if (onMessage) {
+        onMessage(error);
+      }
+    })
   }
 }
-
-function createContext(clientId: string) : Context {
-  let context = new kafka.Client(config.kafka.zookeeper, clientId);
-  return new Context(context);
-}
-
-function init(context: Context, topics: kafka.Topic[], initCb: (data: kafka.Message) => void) : void {
-  let consumer = new kafka.HighLevelConsumer(context.client, topics, config.kafka.consumer);
-
-  // Register callbacks
-  consumer.on('message', function (message) {
-    initCb(message);
-  });
-
-  consumer.on('error', function (err) {
-    console.log('error', err);
-  });
-}
-
-
-export {createContext};
-export {init};
-export {Context};

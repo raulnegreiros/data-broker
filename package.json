@@ -22,7 +22,7 @@
   "scripts": {
     "subscription": "node build/src/subscription-manager.js",
     "transpile": "tsc",
-    "copy": "cp -r src/lua build/lua",
+    "copy": "cp -r src/lua build/src/lua",
     "build": "npm run-script transpile && npm run-script copy"
   },
   "dependencies": {
