@@ -1,5 +1,6 @@
 import kafka = require('kafka-node');
 import config = require('./config');
+var uuid = require('uuid/v4');
 
 export class KafkaConsumer {
   host: string
@@ -14,8 +15,15 @@ export class KafkaConsumer {
   }
 
   subscribe(topics: kafka.Topic[], onMessage?: (error?: any, data?: kafka.Message) => void): void {
-    let client = new kafka.Client(this.host, this.id);
-    this.consumer = new kafka.HighLevelConsumer(client, topics, this.info);
+    const consumerOpt = {
+      'kafkaHost': 'kafka:9092',
+      'sessionTimeout': 15000,
+      'groupId': 'databroker-' + uuid()
+    }
+
+    this.consumer = new kafka.ConsumerGroup(consumerOpt, topics[0].topic)
+    // let client = new kafka.Client(this.host, this.id);
+    // this.consumer = new kafka.HighLevelConsumer(client, topics, this.info);
     this.consumer.on('message', (data: kafka.Message) => {
       if (onMessage) {
         onMessage(undefined, data);

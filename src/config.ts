@@ -11,5 +11,5 @@ export var kafka = {
 };
 
 export var broker = {
-  'ingestion': ['device_data']
+  'ingestion': ['device-data', 'device_data']
 }
