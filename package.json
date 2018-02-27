@@ -22,7 +22,7 @@
   "scripts": {
     "subscription": "node build/src/subscription-manager.js",
     "transpile": "tsc",
-    "copy": "cp -r src/lua build/src/lua",
+    "copy": "[ ! -d build/src/lua ] && mkdir -p build/src/lua ; cp -r src/lua/* build/src/lua",
     "build": "npm run-script transpile && npm run-script copy"
   },
   "dependencies": {
@@ -39,12 +39,14 @@
     "jshint": "^2.9.5",
     "kafka-node": "^2.2.3",
     "redis": "^2.8.0",
+    "socket.io": "^2.0.4",
     "tsconfig": "^7.0.0",
     "typescript": "^2.5.3",
     "uuid": "^3.1.0"
   },
   "devDependencies": {
+    "@types/argparse": "^1.0.33",
     "@types/redis": "^2.8.1",
-    "@types/argparse": "^1.0.33"
+    "@types/socket.io": "^1.4.31"
   }
 }

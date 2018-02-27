@@ -10,6 +10,8 @@ import express = require('express');
 import util = require('util');
 import {AuthRequest, authEnforce, authParse} from './api/authMiddleware';
 import {TopicManager} from './topicManager';
+import http = require('http');
+import {SocketIOSingleton} from './socketIo';
 
 const app = express();
 app.use(authParse);
@@ -18,6 +20,10 @@ app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
 const engine = new SubscriptionEngine();
+
+const httpServer = http.createServer(app);
+// make sure singleton is instantiated
+SocketIOSingleton.getInstance(httpServer);
 
 /*
  * Subscription management endpoints
@@ -48,10 +54,16 @@ app.get('/topic/:subject', function(req: AuthRequest, response: express.Response
       return response.send({'error': 'failed to process topic'});
     }
 
-    return response.status(200).send(JSON.stringify({'topic': data}));
+    return response.status(200).send({'topic': data});
   })
 });
 
-app.listen(80, function() {
+app.get('/socketio', function(req: AuthRequest, response: express.Response) {
+  let token = SocketIOSingleton.getInstance().getToken(req.service);
+  console.log('will reply', {'token': token});
+  return response.status(200).send({'token': token});
+});
+
+httpServer.listen(80, function() {
   console.log('Subscription manager listening on port 80');
 });
