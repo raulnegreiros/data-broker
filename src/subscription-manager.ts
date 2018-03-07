@@ -60,7 +60,6 @@ app.get('/topic/:subject', function(req: AuthRequest, response: express.Response
 
 app.get('/socketio', function(req: AuthRequest, response: express.Response) {
   let token = SocketIOSingleton.getInstance().getToken(req.service);
-  console.log('will reply', {'token': token});
   return response.status(200).send({'token': token});
 });
 

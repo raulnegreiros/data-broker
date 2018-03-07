@@ -29,38 +29,28 @@ class SocketIOHandler {
     this.ioServer.use(this.checkSocket);
 
     this.ioServer.on('connection', (socket) => {
-      console.log('got new connection');
+      console.log('Got new socketio connection');
       let redis = RedisManager.getClient('');
       const givenToken = socket.handshake.query.token;
 
       redis.runScript(__dirname + '/lua/setDel.lua', [getKey(givenToken)],[], (error: any, tenant) => {
         if (error || (!tenant)) {
           console.error('Failed to find suitable context for socket', socket.id);
-          // console.error(socket);
           socket.disconnect();
           return;
         }
 
         console.log('will assign client [%s] to namespace: (%s)', givenToken, tenant, socket.id);
         socket.join(tenant);
-        // console.log(socket);
       })
     });
-
-    // setInterval(() => {
-    //   console.log('will send dummy');
-    //   this.ioServer.to('admin').emit('dummy', JSON.stringify({a: 1, b: 'lexi'}));
-    //   this.ioServer.to('admin').emit('dummy', JSON.stringify({a: 1, b: 'lowe'}));
-    //   this.ioServer.to('dummy').emit('ether', JSON.stringify({a: 1, b: 'cherie'}));
-    //   this.ioServer.to('admin').emit('ether', JSON.stringify({a: 1, b: 'deville'}));
-    // }, 2000)
   }
 
   private checkSocket(socket:SocketIO.Socket, next:(error?: Error) => void) {
     const givenToken = socket.handshake.query.token;
     const namespace = socket.nsp;
     if (givenToken) {
-      console.log('got token', givenToken);
+      // console.log('got token', givenToken);
       const key = 'si:' + givenToken;
       let redis = RedisManager.getClient('');
       redis.client.get(getKey(givenToken), (error, value) => {
@@ -107,8 +97,9 @@ class SocketIOHandler {
       return this.consumers[topic];
     }
 
-    let subscriber = new KafkaConsumer();
     console.log('Will subscribe to topic [%s]', topic)
+    let subscriber = new KafkaConsumer();
+    this.consumers[topic] = subscriber;
     subscriber.subscribe([{topic: topic}], (error?:any, message?:kafka.Message) => {
       this.handleMessage(tenant, error, message);
     });
