@@ -1,0 +1,15 @@
+FROM giovannicuriel/dredd-nodejs
+
+WORKDIR /opt/subscription-manager
+EXPOSE 80
+
+COPY package.json .
+COPY package-lock.json .
+RUN npm install
+
+COPY . .
+RUN npm run-script build
+RUN npm run-script build-tests
+
+
+CMD ["dredd"]

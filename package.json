@@ -22,8 +22,10 @@
   "scripts": {
     "subscription": "node build/src/subscription-manager.js",
     "transpile": "tsc",
+    "transpile-tests": "tsc -p ./tsconfig-dredd.json",
     "copy": "[ ! -d build/src/lua ] && mkdir -p build/src/lua ; cp -r src/lua/* build/src/lua",
-    "build": "npm run-script transpile && npm run-script copy"
+    "build": "npm run-script transpile && npm run-script copy",
+    "build-tests": "npm run-script transpile-tests && npm run-script copy"
   },
   "dependencies": {
     "@types/async": "^2.0.43",
@@ -47,6 +49,7 @@
   "devDependencies": {
     "@types/argparse": "^1.0.33",
     "@types/redis": "^2.8.1",
-    "@types/socket.io": "^1.4.31"
+    "@types/socket.io": "^1.4.31",
+    "hooks": "^0.3.2"
   }
 }
