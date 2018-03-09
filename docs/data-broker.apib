@@ -1,0 +1,95 @@
+FORMAT: 1A
+HOST: http://localhost:80
+
+# Dojot data broker API
+
+This document describes the APIs using data-broker as a standalone process. If used within
+dojot, the endpoints might be changed a bit. Check [dojot's documentation](http://dojotdocs.readthedocs.io/)
+to check all of them.
+
+# Group Subject
+
+In order to allow clients to consume dojot events on their own pace, dojot exposes (both internally
+and externally) apache kafka streams. To manage the set of topics/partitions exposed by the kafka
+cluster, the data-broker component functions as a gatekeeper to the queues, configuring the needed
+streams on kafka and setting its accessibility parameters.
+
+In order to *subscribe* to a given set of events, a client uses a `subject`. A `subject` is a shared
+human-readable identifier for the data stream one wishes to produce or consume from. From the
+data-broker point of view, all `subjects` are equal and are just a representation of a set of events
+to be put on their own stream. To check the list of available subjects to consume from (as an
+application) please check the relevant service documentation (e.g. *device-manager* or *iotagent*).
+
+## Subject [/topic/{subjectid}]
+
++ Parameters
+    + subjectid: device%2Ddata (required, string) - Subject whose topic is to be retrieved.
+
+### Request kafka topic for given subject [GET]
+
+Request a kafka topic ID for realtime event consumption
+
++ Request
+    + Headers
+
+            Authorization: Bearer JWT
+
++ Response 200 (application/json)
+
+            {"topic":"c9b2c688-9e40-4032-877a-3d262acba9d0"}
+
+# Group Websockets
+
+For websocket based real time consumption of events, a two-step procedure is required on the
+client. First, the user requests a session token, using a valid dojot JWT token to present itself
+to the platform. Should the user be able to access the feature, data-broker will then generate a
+one-time token to be used by the client when establising the websocket connection, through a
+querystring param.
+
+Websocket connections that do not present a valid previously agreed one-time token will be dropped.
+
+## Socket-io based realtime events [/socketio]
+
+Established connections will have two types of events defined: wildcard (`all`) and per device.
+
+As a client, to be notified of changes to a specific device's attribute values, subscribe to the
+device id of the relevant device:
+
+```javascript
+/*
+ * Where:
+ *   target is the full base url to dojot
+ *   token is the one-time access token retrieved by GET /socketio
+ */
+var socket = socketio(target, {'query': "token=" + token, 'transports': ['websocket']});
+socket.on('abcd', (data) => {
+    // handle data here
+});
+```
+
+To be notified of changes to any device, subscribe to the wildcard message type `all`:
+
+```javascript
+/*
+ * Where:
+ *   target is the full base url to dojot
+ *   token is the one-time access token retrieved by GET /socketio
+ */
+var socket = socketio(target, {'query': "token=" + token, 'transports': ['websocket']});
+socket.on('all', (data) => {
+    // handle data here
+});
+```
+
+### Request authentication token [GET]
+
+Request a one-time token for connection establishment.
+
++ Request
+  + Headers
+
+            Authorization: Bearer JWT
+
++ Response 200 (application/json)
+
+            {"token":"f3fa3200-355e-4c64-b300-64cef69b0576"}
