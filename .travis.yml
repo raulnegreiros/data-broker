@@ -3,6 +3,7 @@ language: node_js
 node_js: 8
 script:
   - npm run-script build
+  - docker build -t ${TRAVIS_REPO_SLUG} .
   - docker build -t dredd-data-broker . -f ./tests/Dockerfile
   - cd tests
   - docker-compose run data-broker
@@ -12,3 +13,5 @@ before_script:
   - cd ..
 install:
   - npm install
+after_success:
+  - travis/publish.sh
