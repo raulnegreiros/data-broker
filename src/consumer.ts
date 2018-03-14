@@ -6,7 +6,7 @@ export class KafkaConsumer {
   host: string
   id: string | undefined
   info: kafka.ConsumerOptions
-  consumer: kafka.HighLevelConsumer
+  consumer: kafka.HighLevelConsumer | undefined
 
   constructor(clientid?: string, host?: string, info?: kafka.ConsumerOptions) {
     this.host = host ? host : config.kafka.kafka;
@@ -16,7 +16,7 @@ export class KafkaConsumer {
 
   subscribe(topics: kafka.Topic[], onMessage?: (error?: any, data?: kafka.Message) => void): void {
     const consumerOpt = {
-      'kafkaHost': 'kafka:9092',
+      'kafkaHost': this.host,
       'sessionTimeout': 15000,
       'groupId': 'databroker-' + uuid()
     }

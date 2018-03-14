@@ -1,9 +1,11 @@
+import { cache } from './config';
 /* jslint node: true */
 "use strict";
 
 import redis = require('redis');
 import crypto = require('crypto');
 import fs = require('fs');
+import config = require('./config');
 
 
 export class ClientWrapper  {
@@ -74,7 +76,7 @@ class RedisManager {
 
   constructor() {
     // TODO redis params should be configurable
-    this.redis = redis.createClient({'host': 'data-broker-redis'})
+    this.redis = redis.createClient({'host': config.cache.redis})
   }
 
   getClient(service: string): ClientWrapper {

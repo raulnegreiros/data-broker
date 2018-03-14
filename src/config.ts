@@ -1,6 +1,6 @@
 export var kafka = {
-  'zookeeper': 'zookeeper:2181',
-  'kafka': 'kafka:9092',
+  'zookeeper': process.env.DATABROKER_ZOOKEEPER_HOST || 'zookeeper:2181',
+  'kafka': process.env.DATABROKER_KAFKA_HOST || 'kafka:9092',
   'consumer': {
     'autoCommit' : true,
     'fetchMaxWaitMs' : 1000,
@@ -12,4 +12,8 @@ export var kafka = {
 
 export var broker = {
   'ingestion': ['device-data', 'device_data']
+}
+
+export var cache = {
+  'redis' : process.env.DATABROKER_CACHE_HOST || 'data-broker-redis'
 }

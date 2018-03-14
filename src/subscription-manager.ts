@@ -12,6 +12,7 @@ import {AuthRequest, authEnforce, authParse} from './api/authMiddleware';
 import {TopicManager} from './topicManager';
 import http = require('http');
 import {SocketIOSingleton} from './socketIo';
+import config = require("./config")
 
 const app = express();
 app.use(authParse);
