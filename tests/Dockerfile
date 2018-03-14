@@ -12,4 +12,4 @@ RUN npm run-script build
 RUN npm run-script build-tests
 
 
-CMD ["dredd"]
+CMD ["./tests/start-test.sh"]

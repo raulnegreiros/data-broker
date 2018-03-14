@@ -2,7 +2,7 @@ version: '2.1'
 services:
 
   data-broker:
-    image: dredd-data-broker
+    image: dredd-tests
     restart: always
     depends_on:
       - kafka

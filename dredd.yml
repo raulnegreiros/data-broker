@@ -3,7 +3,7 @@ dry-run: null
 hookfiles: ./build/tests/dredd-hooks/*hook.js
 language: nodejs
 sandbox: false
-server: ./tests/start-tests.sh
+server: npm run subscription
 server-wait: 3
 custom: {}
 names: false
