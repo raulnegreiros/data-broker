@@ -5,19 +5,17 @@ export class KafkaProducer {
   producer: kafka.HighLevelProducer;
 
   constructor(host?: string, init?: () => void) {
-    console.log('--- init producer');
     let kafkaHost = host ? host : config.kafka.zookeeper;
     let client = new kafka.Client(kafkaHost);
     this.producer = new kafka.HighLevelProducer(client, {requireAcks: 1});
     this.producer.on('ready', () => {
-      console.log('--- producer done');
       if (init) {
         init();
       }
     })
   }
 
-  send(message: string, topic: string, key?: string){
+  send(message: string, topic: string, key?: string) {
     let msgPayload;
     if (key) {
       msgPayload = new kafka.KeyedMessage(key, message);
@@ -41,5 +39,9 @@ export class KafkaProducer {
     } else {
       this.producer.createTopics(topics, () => {});
     }
+  }
+
+  close() {
+    this.producer.close();
   }
 }

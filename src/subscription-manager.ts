@@ -9,16 +9,18 @@ import bodyParser = require('body-parser');
 import express = require('express');
 import util = require('util');
 import {AuthRequest, authEnforce, authParse} from './api/authMiddleware';
-import {TopicManager} from './topicManager';
+import {TopicManagerBuilder} from './topicManager';
 import http = require('http');
 import {SocketIOSingleton} from './socketIo';
 import config = require("./config")
+import morgan = require("morgan");
 
 const app = express();
 app.use(authParse);
 app.use(authEnforce);
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+app.use(morgan('short'));
 
 const engine = new SubscriptionEngine();
 
@@ -47,7 +49,7 @@ app.post('/subscription', function (request: AuthRequest, response: express.Resp
  */
 
 app.get('/topic/:subject', function(req: AuthRequest, response: express.Response) {
-  let topics = new TopicManager(req.service);
+  let topics = TopicManagerBuilder.get(req.service);
   topics.getCreateTopic(req.params.subject, (error: any, data: any) => {
     if (error) {
       console.log('failed to retrieve topic', error);

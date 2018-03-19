@@ -94,4 +94,25 @@ export class TopicManager {
       }
     }
   }
+
+  destroy() {
+    this.producer.close();
+  }
 }
+
+class Builder {
+  managers: {[key:string]: TopicManager}
+  constructor() {
+    this.managers = {}
+  }
+
+  get(service: string): TopicManager {
+    if (!this.managers.hasOwnProperty(service)) {
+      this.managers[service] = new TopicManager(service);
+    }
+
+    return this.managers[service];
+  }
+}
+
+export let TopicManagerBuilder = new Builder();
