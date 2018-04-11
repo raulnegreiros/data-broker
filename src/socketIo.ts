@@ -9,7 +9,7 @@ import redis = require('redis');
 import {RedisManager} from './redisManager';
 
 import {KafkaConsumer} from './consumer';
-import {TopicManager} from './topicManager';
+import {TopicManagerBuilder} from './topicManager';
 
 function getKey(token:string): string {
   return 'si:' + token;
@@ -108,7 +108,7 @@ class SocketIOHandler {
   }
 
   getToken(tenant:string) {
-    let topicManager = new TopicManager(tenant);
+    let topicManager = TopicManagerBuilder.get(tenant);
     topicManager.getCreateTopic('device-data', (error?:any, topic?:string) => {
       if (error || !topic) {
         console.error('Failed to find appropriate topic for tenant: ',
