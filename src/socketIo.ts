@@ -87,6 +87,16 @@ class SocketIOHandler {
       return;
     }
 
+    if (data.hasOwnProperty('metadata')) {
+      if (!data.metadata.hasOwnProperty('deviceid')) {
+        console.error("Received data is not a valid dojot event - has no deviceid");
+        return;
+      }
+    } else {
+      console.error("Received data is not a valid dojot event - has no metadata");
+      return;
+    }
+
     console.log('will publish event [%s] %s', nsp, message.value);
     this.ioServer.to(nsp).emit(data.metadata.deviceid, data);
     this.ioServer.to(nsp).emit('all', data);
