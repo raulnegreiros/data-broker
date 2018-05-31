@@ -108,6 +108,29 @@ var producer: KafkaProducer;
 
 var operators = ["==", "!=", ">=", "<=", "~=", ">", "<" ];
 
+
+function evaluateLogicTest(op1: any, operator: string, op2: string): boolean {
+  logger.debug(`Evaluating logic test: ${op1} ${operator} ${op2}.`);
+  // There"s something here
+  switch (operator) {
+    case "==":
+      return (op1 == op2);
+    case "!=":
+      return (op1 != op2);
+    case ">":
+      return (op1 > parseFloat(op2));
+    case ">=":
+      return (op1 >= parseFloat(op2));
+    case "<":
+      return (op1 < parseFloat(op2));
+    case "<=":
+      return (op1 <= parseFloat(op2));
+    case "~=":
+      // ret = (logicTokens[1].exec(data[logicTokens[0]].value).length != 0);
+  }
+  return false;
+}
+
 function evaluateLogicCondition(condition: string, data: any) {
   let ret = true;
 
@@ -115,42 +138,13 @@ function evaluateLogicCondition(condition: string, data: any) {
 
   for (let i = 0; i < logicTests.length; i++) {
     for (let j = 0; j < operators.length; j++) {
-      let found = false;
       let logicTokens = tools.tokenize(logicTests[i], operators[j]);
-      if (logicTokens.length > 1) {
-        // There"s something here
-        switch (operators[j]) {
-          case "==":
-            ret = ret && (data[logicTokens[0]].value == logicTokens[1]);
-            found = true;
-            break;
-          case "!=":
-            ret = ret && (data[logicTokens[0]].value != logicTokens[1]);
-            found = true;
-            break;
-          case ">":
-            ret = ret && (data[logicTokens[0]].value > parseFloat(logicTokens[1]));
-            found = true;
-            break;
-          case ">=":
-            ret = ret && (data[logicTokens[0]].value >= parseFloat(logicTokens[1]));
-            found = true;
-            break;
-          case "<":
-            ret = ret && (data[logicTokens[0]].value < parseFloat(logicTokens[1]));
-            found = true;
-            break;
-          case "<=":
-            ret = ret && (data[logicTokens[0]].value <= parseFloat(logicTokens[1]));
-            found = true;
-            break;
-          case "~=":
-            // ret = ret && (logicTokens[1].exec(data[logicTokens[0]].value).length != 0);
-            found = true;
-            break;
-        }
+      if (logicTokens.length <= 1) {
+        continue;
       }
-      if ((found === true) || (ret === false)) {
+      ret = evaluateLogicTest(data[logicTokens[0]].value, operators[j], logicTokens[1]);
+      //logger.debug(`Condition evaluation result so far: ${ret}.`);
+      if (ret === false) {
         break;
       }
     }
