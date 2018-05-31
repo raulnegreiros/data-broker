@@ -1,12 +1,12 @@
 /* jslint node: true */
 "use strict";
 
-import redis = require('redis');
-import {broker as config} from './config';
-import {KafkaProducer} from './producer';
-import {ClientWrapper, RedisManager} from './redisManager';
+import redis = require("redis");
+import {broker as config} from "./config";
+import {KafkaProducer} from "./producer";
+import {ClientWrapper, RedisManager} from "./redisManager";
 
-var uuid = require('uuid/v4');
+var uuid = require("uuid/v4");
 
 
 export type TopicCallback = (error?: any, topic?: string) => void;
@@ -28,7 +28,7 @@ export class TopicManager {
 
   constructor(service: string) {
     if ((service === undefined) || service.length == 0) {
-      throw new Error('a valid service id must be supplied');
+      throw new Error("a valid service id must be supplied");
     }
 
     this.service = service;
@@ -53,15 +53,15 @@ export class TopicManager {
   }
 
   parseKey(subject: string) {
-    this.assertTopic(subject, 'a valid subject must be provided');
-    return 'ti:' + this.service + ':' + subject;
+    this.assertTopic(subject, "a valid subject must be provided");
+    return "ti:" + this.service + ":" + subject;
   }
 
   handleRequest(request: QueuedTopic) {
     this.producer.createTopics([request.topic], () => {
       if (config.ingestion.find((i) => {return request.subject === i;})) {
         // Subject is used for data ingestion - initialize consumer
-        console.log('will initialize ingestion handler: %s', request.subject, request.topic);
+        console.log("will initialize ingestion handler: %s", request.subject, request.topic);
       }
 
       if (request.callback) {
@@ -81,7 +81,7 @@ export class TopicManager {
           }
         }
 
-        let request = {'topic': topic, 'subject': subject, 'callback': callback};
+        let request = {"topic": topic, "subject": subject, "callback": callback};
         if (this.producerReady){
           this.handleRequest(request);
         } else {

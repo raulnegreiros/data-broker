@@ -1,6 +1,6 @@
-import kafka = require('kafka-node');
-import config = require('./config');
-var uuid = require('uuid/v4');
+import kafka = require("kafka-node");
+import config = require("./config");
+var uuid = require("uuid/v4");
 
 export class KafkaConsumer {
   host: string
@@ -16,22 +16,22 @@ export class KafkaConsumer {
 
   subscribe(topics: kafka.Topic[], onMessage?: (error?: any, data?: kafka.Message) => void): void {
     const consumerOpt = {
-      'kafkaHost': this.host,
-      'sessionTimeout': 15000,
-      'groupId': 'databroker-' + uuid()
+      "kafkaHost": this.host,
+      "sessionTimeout": 15000,
+      "groupId": "databroker-" + uuid()
     }
 
     this.consumer = new kafka.ConsumerGroup(consumerOpt, topics[0].topic)
     // let client = new kafka.Client(this.host, this.id);
     // this.consumer = new kafka.HighLevelConsumer(client, topics, this.info);
-    this.consumer.on('message', (data: kafka.Message) => {
+    this.consumer.on("message", (data: kafka.Message) => {
       if (onMessage) {
         onMessage(undefined, data);
       }
     });
 
-    this.consumer.on('error', (error: any) => {
-      console.error('Consumer [%s] has errored', this.info.groupId, error);
+    this.consumer.on("error", (error: any) => {
+      console.error("Consumer [%s] has errored", this.info.groupId, error);
       if (onMessage) {
         onMessage(error);
       }

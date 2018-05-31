@@ -1,5 +1,5 @@
-import kafka = require('kafka-node');
-import config = require('./config');
+import kafka = require("kafka-node");
+import config = require("./config");
 
 export class KafkaProducer {
   producer: kafka.HighLevelProducer;
@@ -8,7 +8,7 @@ export class KafkaProducer {
     let kafkaHost = host ? host : config.kafka.zookeeper;
     let client = new kafka.Client(kafkaHost);
     this.producer = new kafka.HighLevelProducer(client, {requireAcks: 1});
-    this.producer.on('ready', () => {
+    this.producer.on("ready", () => {
       if (init) {
         init();
       }
@@ -24,8 +24,8 @@ export class KafkaProducer {
     }
 
     let contextMessage = {
-      'topic': topic,
-      'messages': [msgPayload]
+      "topic": topic,
+      "messages": [msgPayload]
     };
 
     this.producer.send([contextMessage], function (err, result) {

@@ -1,13 +1,13 @@
 /* jslint node: true */
 "use strict";
 
-import express = require('express');
+import express = require("express");
 
 function b64decode(data: string): string {
   if (typeof Buffer.from === "function") {
-    return Buffer.from(data, 'base64').toString();
+    return Buffer.from(data, "base64").toString();
   } else {
-    return (new Buffer(data, 'base64')).toString();
+    return (new Buffer(data, "base64")).toString();
   }
 }
 
@@ -30,12 +30,12 @@ class InvalidTokenError {
 }
 
 export function authParse(req: AuthRequest, res: express.Response, next: express.NextFunction) {
-  const rawToken = req.header('authorization');
+  const rawToken = req.header("authorization");
   if (rawToken === undefined) {
     return next();
   }
 
-  const token = rawToken!.split('.');
+  const token = rawToken!.split(".");
   if (token.length != 3) {
     console.error("got invalid request: token is malformed", rawToken);
     return res.status(401).send(new InvalidTokenError());
@@ -52,7 +52,7 @@ export function authParse(req: AuthRequest, res: express.Response, next: express
 export function authEnforce(req: AuthRequest, res: express.Response, next: express.NextFunction) {
   if (req.user === undefined || req.user!.trim() === "" ) {
     // valid token must be supplied
-    console.error("got invalid request: user is not defined in token", req.header('authorization'));
+    console.error("got invalid request: user is not defined in token", req.header("authorization"));
     return res.status(401).send(new UnauthorizedError());
   }
 

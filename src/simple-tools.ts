@@ -56,22 +56,22 @@ function tokenize(text: string, token: string) {
 
 
 /**
- * Adds a particular parameter described by a 'path' into an object.
+ * Adds a particular parameter described by a "path" into an object.
  *
  * For instance, suppose the following object:
  * obj = {
  *   descr : {
  *     owner : {
- *       name : 'user'
+ *       name : "user"
  *     }
  *   }
  * }
  *
- * Calling objectify(obj, 'descr.owner.resource.id', 12345) will generate:
+ * Calling objectify(obj, "descr.owner.resource.id", 12345) will generate:
  * {
  *   descr : {
  *     owner : {
- *       name : 'user',
+ *       name : "user",
  *       resource: {
  *         id: 12345
  *       }
