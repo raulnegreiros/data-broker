@@ -2,7 +2,14 @@
 "use strict";
 
 import express = require("express");
+import { logger } from "../logger";
+import { InvalidTokenError } from "./InvalidTokenError";
+import { UnauthorizedError } from "./UnauthorizedError";
 
+/**
+ * Open up a base64 encoded string.
+ * @param data The data to be decoded.
+ */
 function b64decode(data: string): string {
   if (typeof Buffer.from === "function") {
     return Buffer.from(data, "base64").toString();
@@ -11,33 +18,25 @@ function b64decode(data: string): string {
   }
 }
 
-export interface AuthRequest extends express.Request {
+/**
+ * Interface for handling authorization requests
+ */
+interface IAuthRequest extends express.Request {
   user: string;
   userid: string;
   service: string;
 }
 
-class UnauthorizedError {
-  message: string;
-  constructor(){
-    this.message = "Authentication (JWT) required for API";
-  }
-}
-
-class InvalidTokenError {
-  message: string = "Invalid authentication token given";
-  constructor(){}
-}
-
-export function authParse(req: AuthRequest, res: express.Response, next: express.NextFunction) {
+function authParse(req: IAuthRequest, res: express.Response, next: express.NextFunction) {
   const rawToken = req.header("authorization");
   if (rawToken === undefined) {
     return next();
   }
 
   const token = rawToken!.split(".");
-  if (token.length != 3) {
-    console.error("got invalid request: token is malformed", rawToken);
+  if (token.length !== 3) {
+    logger.error("Got invalid request: token is malformed.");
+    logger.error(`Token is: ${rawToken}`);
     return res.status(401).send(new InvalidTokenError());
   }
 
@@ -46,20 +45,25 @@ export function authParse(req: AuthRequest, res: express.Response, next: express
   req.user = tokenData.username;
   req.userid = tokenData.userid;
   req.service = tokenData.service;
-  next();
+  return next();
 }
 
-export function authEnforce(req: AuthRequest, res: express.Response, next: express.NextFunction) {
+function authEnforce(req: IAuthRequest, res: express.Response, next: express.NextFunction) {
   if (req.user === undefined || req.user!.trim() === "" ) {
     // valid token must be supplied
-    console.error("got invalid request: user is not defined in token", req.header("authorization"));
+    logger.error("Got invalid request: user is not defined in token.");
+    logger.error(`Token is: ${req.header("authorization")}`);
     return res.status(401).send(new UnauthorizedError());
   }
 
   if (req.service === undefined || req.service!.trim() === "" ) {
     // valid token must be supplied
+    logger.error("Got invalid request: service is not defined in token.");
+    logger.error(`Token is: ${req.header("authorization")}`);
     return res.status(401).send(new UnauthorizedError());
   }
 
-  next();
+  return next();
 }
+
+export { IAuthRequest, authParse, authEnforce };

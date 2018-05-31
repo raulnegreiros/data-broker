@@ -8,7 +8,7 @@ import {SubscriptionEngine, SubscriptionType} from "./subscription-engine";
 import bodyParser = require("body-parser");
 import express = require("express");
 import util = require("util");
-import {AuthRequest, authEnforce, authParse} from "./api/authMiddleware";
+import { IAuthRequest, authEnforce, authParse} from "./api/authMiddleware";
 import {TopicManagerBuilder} from "./topicManager";
 import http = require("http");
 import {SocketIOSingleton} from "./socketIo";
@@ -31,7 +31,7 @@ SocketIOSingleton.getInstance(httpServer);
 /*
  * Subscription management endpoints
  */
-app.post("/subscription", function (request: AuthRequest, response: express.Response) {
+app.post("/subscription", function (request: IAuthRequest, response: express.Response) {
   console.log("Body: " + util.inspect(request.body, {depth: null}));
   let subscription = request.body;
   if ("id" in subscription.subject.entities) {
@@ -48,7 +48,7 @@ app.post("/subscription", function (request: AuthRequest, response: express.Resp
  * Topic registry endpoints
  */
 
-app.get("/topic/:subject", function(req: AuthRequest, response: express.Response) {
+app.get("/topic/:subject", function(req: IAuthRequest, response: express.Response) {
   let topics = TopicManagerBuilder.get(req.service);
   topics.getCreateTopic(req.params.subject, (error: any, data: any) => {
     if (error) {
@@ -61,7 +61,7 @@ app.get("/topic/:subject", function(req: AuthRequest, response: express.Response
   })
 });
 
-app.get("/socketio", function(req: AuthRequest, response: express.Response) {
+app.get("/socketio", function(req: IAuthRequest, response: express.Response) {
   let token = SocketIOSingleton.getInstance().getToken(req.service);
   return response.status(200).send({"token": token});
 });
