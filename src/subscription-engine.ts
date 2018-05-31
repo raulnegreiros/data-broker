@@ -1,122 +1,54 @@
 /* jslint node: true */
 "use strict";
 
-import tools = require("./simple-tools");
-import config = require("./config");
-import util = require("util");
-
 import kafka = require("kafka-node");
-import {KafkaConsumer} from "./consumer";
-import {KafkaProducer} from "./producer";
+import util = require("util");
+import { KafkaConsumer } from "./consumer";
+import { logger } from "./logger";
+import { KafkaProducer } from "./producer";
+import tools = require("./simple-tools");
 
-class Condition {
-  attrs: string[];
-  expression: {
-    q: string | null;
-    mq: string | null;
-    georel: "convered-by" | "intersects" | null;
-    geometry: "point" | "polygon" | null;
-    coords: string[] | null;
-  }
-}
+import { Event } from "./subscription/Event";
+import { Notification } from "./subscription/Notification";
+import { Subscription } from "./subscription/Subscription";
 
-class Notification {
+interface IAction {
   topic: string;
-  attrs: string[];
+  data: any;
 }
-
-class Subscription {
-  id: string;
-  subject: {
-    entities: {
-      id: string;
-      idPattern: string;
-      model: string;
-      modelPattern: string;
-      type: string;
-      typePattern: string;
-    };
-    condition: Condition | null;
-  };
-  notification: Notification;
-
-
-  constructor() {
-    this.id = "";
-    this.subject = {
-      entities: {
-        id: "",
-        idPattern: "",
-        model: "",
-        modelPattern: "",
-        type: "",
-        typePattern: "",
-      },
-      condition: null
-    };
-    this.notification = new Notification();
-  }
-}
-
-class Event {
-  // Metadata might be "any" as well.
-  metadata: {
-    topic: string | null;
-    protocol: string;
-    payload: string;
-    deviceid: string;
-    type: string;
-    model: string;
-  };
-  attrs: any;
-
-  constructor(data: any) {
-    this.metadata = {
-      topic: data.metadata.topic,
-      protocol: data.metadata.protocol,
-      payload: data.metadata.payload,
-      deviceid: data.metadata.deviceid,
-      type: data.metadata.type,
-      model: data.metadata.model
-    };
-    this.attrs = data.attrs;
-  };
-};
-
-interface Action {
-  "topic" : string;
-  "data" : any;
-};
 
 // Now this is awful, but
-export enum SubscriptionType {model = "model", type = "type", id = "id", flat = "flat"};
-
-type SubscriptionMap = {[key: string]: any};
-
-interface RegisteredSubscriptions {
-  // This will allow "invalid" types on indirect access to attributes, but we need it for
-  // the compiler to allow indirect (e.g. var[valuePointer] ) attribute reading/writing
-  [k:string]: SubscriptionMap,
-
-  "flat" : SubscriptionMap,
-  "id" : SubscriptionMap,
-  "model" : SubscriptionMap,
-  "type" : SubscriptionMap
+enum SubscriptionType {
+  model = "model",
+  type = "type",
+  id = "id",
+  flat = "flat",
 }
 
-var producer: KafkaProducer;
+interface ISubscriptionMap {
+  [key: string]: any;
+}
 
-var operators = ["==", "!=", ">=", "<=", "~=", ">", "<" ];
+interface IRegisteredSubscriptions {
+  // This will allow "invalid" types on indirect access to attributes, but we need it for
+  // the compiler to allow indirect (e.g. var[valuePointer] ) attribute reading/writing
+  [k: string]: ISubscriptionMap;
+  flat: ISubscriptionMap;
+  id: ISubscriptionMap;
+  model: ISubscriptionMap;
+  type: ISubscriptionMap;
+}
 
+const operators = ["==", "!=", ">=", "<=", "~=", ">", "<" ];
 
 function evaluateLogicTest(op1: any, operator: string, op2: string): boolean {
   logger.debug(`Evaluating logic test: ${op1} ${operator} ${op2}.`);
   // There"s something here
   switch (operator) {
     case "==":
-      return (op1 == op2);
+      return (op1 === op2);
     case "!=":
-      return (op1 != op2);
+      return (op1 !== op2);
     case ">":
       return (op1 > parseFloat(op2));
     case ">=":
@@ -132,18 +64,19 @@ function evaluateLogicTest(op1: any, operator: string, op2: string): boolean {
 }
 
 function evaluateLogicCondition(condition: string, data: any) {
+  logger.debug("Evaluating logic condition...");
   let ret = true;
 
-  let logicTests = tools.tokenize(condition, ";");
+  const logicTests = tools.tokenize(condition, ";");
 
-  for (let i = 0; i < logicTests.length; i++) {
-    for (let j = 0; j < operators.length; j++) {
-      let logicTokens = tools.tokenize(logicTests[i], operators[j]);
+  for (const logicTest of logicTests) {
+    for (const operator of operators) {
+      const logicTokens = tools.tokenize(logicTest, operator);
       if (logicTokens.length <= 1) {
         continue;
       }
-      ret = evaluateLogicTest(data[logicTokens[0]].value, operators[j], logicTokens[1]);
-      //logger.debug(`Condition evaluation result so far: ${ret}.`);
+      ret = evaluateLogicTest(data[logicTokens[0]].value, operator, logicTokens[1]);
+      logger.debug(`Condition evaluation result so far: ${ret}.`);
       if (ret === false) {
         break;
       }
@@ -153,18 +86,27 @@ function evaluateLogicCondition(condition: string, data: any) {
     }
   }
 
+  logger.debug("... logic condition was evaluated.");
   return ret;
 }
 
 function evaluateMetaCondition(condition: string, data: any) {
-  let ret = true;
-  // TODO
+  const ret = true;
+  logger.debug("Evaluation of meta-data is not yet implemented.");
+  logger.debug("Parameters are:");
+  logger.debug(`Condition: ${condition}`);
+  logger.debug(`Data: ${util.inspect(data, { depth: null})}`);
   return ret;
 }
 
 function evaluateGeoCondition(georel: string, geometry: string, coords: string, data: any) {
-  let ret = true;
-  // TODO
+  const ret = true;
+  logger.debug("Evaluation of meta-data is not yet implemented.");
+  logger.debug("Parameters are:");
+  logger.debug(`georel: ${georel}`);
+  logger.debug(`geometry: ${geometry}`);
+  logger.debug(`coords: ${coords}`);
+  logger.debug(`Data: ${util.inspect(data, { depth: null})}`);
   return ret;
 }
 
@@ -186,73 +128,75 @@ function evaluateCondition(condition: any, data: any) {
   return ret;
 }
 
-function generateOutputData(obj: Event, notification: Notification) : Action{
-  let ret: Action = { "topic": notification.topic, data: {}};
+function generateOutputData(obj: Event, notification: Notification): IAction {
+  const ret: IAction = {
+    data: {},
+    topic: notification.topic,
+  };
 
   // notification.attrs contains all the attributes that must be
   // forwarded to output.
   // obj.attrs contains all the data retrieved from the device
-  for (let i = 0; i < notification.attrs.length; i++) {
-    if (notification.attrs[i] in obj.attrs) {
-      let attrName = notification.attrs[i];
-      ret.data[attrName] = obj.attrs[attrName].value;
+  for (const attr of notification.attrs) {
+    if (attr in obj.attrs) {
+      ret.data[attr] = obj.attrs[attr].value;
     }
   }
 
   return ret;
 }
 
-function checkSubscriptions(obj: Event, subscriptions: Subscription[]) : Action[] {
-  let actions: Action[] = [];
+function checkSubscriptions(obj: Event, subscriptions: Subscription[]): IAction[] {
+  const actions: IAction[] = [];
 
-  for (let i = 0; i < subscriptions.length; i++) {
-    if (subscriptions[i].subject.condition != null) {
-      if (subscriptions[i].subject.condition!.attrs != null) {
+  for (const subscription of subscriptions) {
+    if (subscription.subject.condition != null) {
+      if (subscription.subject.condition!.attrs != null) {
         // This subscription has some associated attributes, let"s check them
-        let subscAttrs = subscriptions[i].subject.condition!.attrs;
+        const subscAttrs = subscription.subject.condition!.attrs;
         for (let j = 0; j < subscAttrs.length; j++) {
-          if (subscriptions[i].subject.condition!.attrs[j] in obj.attrs) {
+          if (subscription.subject.condition!.attrs[j] in obj.attrs) {
             // This subscription should be evaluated;
-            if (subscriptions[i].subject.condition!.expression != null) {
+            if (subscription.subject.condition!.expression != null) {
               // TODO Gather all data from the device - the condition might use a few
               // variables that were not registered with this subscription
-              if (evaluateCondition(subscriptions[i].subject.condition!.expression, obj.attrs)) {
-                console.log("I should send something to " + subscriptions[i].notification.topic);
-                actions.push(generateOutputData(obj, subscriptions[i].notification));
+              if (evaluateCondition(subscription.subject.condition!.expression, obj.attrs)) {
+                logger.debug(`I should send something to ${subscription.notification.topic}`);
+                actions.push(generateOutputData(obj, subscription.notification));
               }
             } else {
               // There is no condition to this subscription - it should be triggered
-              console.log("I should send something to " + subscriptions[i].notification.topic);
-              actions.push(generateOutputData(obj, subscriptions[i].notification));
+              logger.debug(`I should send something to ${subscription.notification.topic}`);
+              actions.push(generateOutputData(obj, subscription.notification));
             }
             break;
           }
         }
       } else {
         // All attributes should evaluate this subscription
-        console.log("I should send something to " + subscriptions[i].notification.topic);
-        actions.push(generateOutputData(obj, subscriptions[i].notification));
+        logger.debug(`I should send something to ${subscription.notification.topic}`);
+        actions.push(generateOutputData(obj, subscription.notification));
       }
     } else {
       // This subscription will be triggered whenever a message is sent by this device
-      console.log("I should send something to " + subscriptions[i].notification.topic);
-      actions.push(generateOutputData(obj, subscriptions[i].notification));
+      logger.debug(`I should send something to ${subscription.notification.topic}`);
+      actions.push(generateOutputData(obj, subscription.notification));
     }
   }
 
   return actions;
 }
 
-export class SubscriptionEngine {
+class SubscriptionEngine {
   private producer: KafkaProducer;
   private producerReady: boolean;
 
   private subscriber: KafkaConsumer;
 
-  registeredSubscriptions: RegisteredSubscriptions;
+  private registeredSubscriptions: IRegisteredSubscriptions;
 
   constructor() {
-    console.log("Initializing subscription engine...");
+    logger.debug("Initializing subscription engine...");
     this.producerReady = false;
     this.producer = new KafkaProducer(undefined, () => {
       this.producerReady = true;
@@ -261,11 +205,70 @@ export class SubscriptionEngine {
     this.subscriber = new KafkaConsumer();
 
     this.handleEvent.bind(this);
+
+    this.registeredSubscriptions = {
+      flat: {},
+      id: {},
+      model: {},
+      type: {},
+    };
   }
 
-  processEvent(obj: Event) {
+  public handleEvent(err: any, message: kafka.Message | undefined) {
+    if (err) {
+      logger.error(`Subscriber reported error: ${err}`);
+      return;
+    }
+
+    if (message === undefined) {
+      logger.error("Received an empty message.");
+      return;
+    }
+
+    if (this.producerReady === false) {
+      logger.error("Got event before being ready to handle it, ignoring");
+      return;
+    }
+
+    let data: string;
+    logger.debug("New data arrived!");
+    try {
+      data = JSON.parse(message.value);
+      logger.debug(`Data: ${util.inspect(data, {depth: null})}`);
+      this.processEvent(new Event(data));
+    } catch (err) {
+      if (err instanceof TypeError) {
+        logger.error(`Received data is not a valid event: ${message.value}`);
+      } else if (err instanceof SyntaxError) {
+        logger.error(`Failed to parse event as JSON: ${message.value}`);
+      }
+    }
+  }
+
+  public addIngestionChannel(topic: string[]) {
+    const kafkaTopics: kafka.Topic[] = [];
+    for (const i in topic) {
+      if (topic.hasOwnProperty(i)) {
+        kafkaTopics.push({topic: i});
+      }
+    }
+    this.subscriber.subscribe(kafkaTopics, this.handleEvent);
+  }
+
+  public addSubscription(type: SubscriptionType, key: string, subscription: Subscription) {
+    this.registeredSubscriptions.flat[subscription.id] = subscription;
+    if (!(key in this.registeredSubscriptions[type])) {
+      this.registeredSubscriptions[type][key] = [];
+    }
+    this.registeredSubscriptions[type][key].push(subscription);
+    if (subscription.notification != null) {
+      this.producer.createTopics([subscription.notification.topic]);
+    }
+  }
+
+  private processEvent(obj: Event) {
     let subscriptions;
-    let actions: Action[] = [];
+    let actions: IAction[] = [];
 
     // Check whether there"s any subscriptions to this device id
     if (obj.metadata.deviceid in this.registeredSubscriptions.id) {
@@ -289,53 +292,10 @@ export class SubscriptionEngine {
     }
 
     // Execute all actions
-    for (let i = 0; i < actions.length; i++) {
-      producer.send(JSON.stringify(actions[i].data), actions[i].topic);
-    }
-  }
-
-  handleEvent(err: any, message: kafka.Message){
-    if (err) {
-      console.error("Subscriber reported error", err);
-      return;
-    }
-
-    if (this.producerReady == false) {
-      console.error("Got event before being ready to handle it, ignoring");
-      return;
-    }
-
-    let data: string;
-    console.log("New data arrived!");
-    try {
-      data = JSON.parse(message.value);
-      console.log("Data: " + util.inspect(data, {depth: null}));
-      this.processEvent(new Event(data));
-    } catch (err){
-      if (err instanceof TypeError) {
-        console.error("Received data is not a valid event: %s", message.value);
-      } else if (err instanceof SyntaxError) {
-        console.error("Failed to parse event as JSON: %s", message.value);
-      }
-    }
-  }
-
-  addIngestionChannel(topic: string[]) {
-    let kafkaTopics: kafka.Topic[] = [];
-    for (let i in topic) {
-      kafkaTopics.push({"topic": i});
-    }
-    this.subscriber.subscribe(kafkaTopics, this.handleEvent);
-  }
-
-  addSubscription(type: SubscriptionType, key: string, subscription: Subscription) {
-    this.registeredSubscriptions.flat[subscription.id] = subscription;
-    if (!(key in this.registeredSubscriptions[type])) {
-      this.registeredSubscriptions[type][key] = [];
-    }
-    this.registeredSubscriptions[type][key].push(subscription);
-    if (subscription.notification != null) {
-      this.producer.createTopics([subscription.notification.topic]);
+    for (const action of actions) {
+      this.producer.send(JSON.stringify(action.data), action.topic);
     }
   }
 }
+
+export { SubscriptionType, SubscriptionEngine };
