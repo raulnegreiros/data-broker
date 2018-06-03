@@ -6,7 +6,7 @@ import util = require("util");
 import { logger } from "../src/logger";
 import * as device from "./deviceManager";
 
-type DeviceRequestCallback = (err: any, data: device.Device | undefined) => void;
+type DeviceRequestCallback = (err: any, data: device.IDevice | undefined) => void;
 
 function generateJWT(service: string) {
   return (new Buffer("dummy jwt schema").toString("base64")) + "."
@@ -15,7 +15,7 @@ function generateJWT(service: string) {
 }
 
 class DeviceCache {
-  private deviceInfo: {[id: string]: device.Device};
+  private deviceInfo: {[id: string]: device.IDevice};
   private deviceManager: string;
 
   constructor(deviceManager: string) {

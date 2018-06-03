@@ -11,7 +11,7 @@ class TranslatorV2 {
    * @param  {string}        topic      Topic in which the event has been received
    * @return {string}                   Object containing event in NGSI format
    */
-  public translate(deviceData: any, deviceInfo: device.Device, topic: string): any {
+  public translate(deviceData: any, deviceInfo: device.IDevice): any {
     const data: any = {
       id: deviceInfo.id,
       type: "device",

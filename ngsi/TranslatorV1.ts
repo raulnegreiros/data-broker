@@ -13,7 +13,7 @@ class TranslatorV1 {
    * @param  {string}        topic      Topic in which the event has been received
    * @return {NGSIv1.Event}             Object containing event in NGSI format
    */
-  public translate(deviceData: any, deviceInfo: device.Device, topic: string): NGSIv1.Event | null {
+  public translate(deviceData: any, deviceInfo: device.IDevice, topic: string): NGSIv1.Event | null {
     const status: NGSIv1.Status = {code: "200", reasonPhrase: "OK"};
     const element: NGSIv1.ContextElement = {
       attributes: [],

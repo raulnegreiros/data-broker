@@ -30,7 +30,7 @@ interface ITranslator {
    * @param  {string}         topic      Topic in which the event has been received
    * @return {any}                       Object containing event in NGSI format
    */
-  translate(deviceData: any, deviceInfo: device.Device, topic: string): any;
+  translate(deviceData: any, deviceInfo: device.IDevice, topic: string): any;
 }
 
 let translator: ITranslator;
@@ -47,7 +47,7 @@ function handleMessage(data: kafka.Message) {
 
   const event = JSON.parse(data.value);
   const meta = event.metadata;
-  cache.getDeviceInfo(meta.service, meta.deviceid, (err: any, deviceInfo: device.Device | undefined) => {
+  cache.getDeviceInfo(meta.service, meta.deviceid, (err: any, deviceInfo: device.IDevice | undefined) => {
     if (err || (deviceInfo === undefined)) {
       logger.error("Failed to process received event", err);
       return;
