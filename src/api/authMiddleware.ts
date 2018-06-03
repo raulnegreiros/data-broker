@@ -19,12 +19,14 @@ function b64decode(data: string): string {
 }
 
 /**
- * Interface for handling authorization requests
+ * Interface for handling authorization requests.
+ * All parameters should be optional, as pointed out here:
+ * https://stackoverflow.com/questions/49303375/property-push-is-missing-in-type-request-ntlmrequest-response-response
  */
 interface IAuthRequest extends express.Request {
-  user: string;
-  userid: string;
-  service: string;
+  user?: string;
+  userid?: string;
+  service?: string;
 }
 
 function authParse(req: IAuthRequest, res: express.Response, next: express.NextFunction) {
