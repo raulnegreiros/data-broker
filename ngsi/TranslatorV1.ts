@@ -11,11 +11,11 @@ class TranslatorV1 {
    * @param  {any}           deviceData Current values to be embedded in the event
    * @param  {device.Device} deviceInfo Device information model, as configured in device-manager
    * @param  {string}        topic      Topic in which the event has been received
-   * @return {NGSIv1.Event}             Object containing event in NGSI format
+   * @return {NGSIv1.IEvent}             Object containing event in NGSI format
    */
-  public translate(deviceData: any, deviceInfo: device.IDevice, topic: string): NGSIv1.Event | null {
-    const status: NGSIv1.Status = {code: "200", reasonPhrase: "OK"};
-    const element: NGSIv1.ContextElement = {
+  public translate(deviceData: any, deviceInfo: device.IDevice, topic: string): NGSIv1.IEvent | null {
+    const status: NGSIv1.IStatus = {code: "200", reasonPhrase: "OK"};
+    const element: NGSIv1.IContextElement = {
       attributes: [],
       id: deviceInfo.id,
       isPattern: "false",
@@ -28,7 +28,7 @@ class TranslatorV1 {
         if (type == null) {
           return null;
         }
-        const newAttr: NGSIv1.Attribute = {
+        const newAttr: NGSIv1.IAttribute = {
           name: attr,
           type,
           value: deviceData[attr],
@@ -37,7 +37,7 @@ class TranslatorV1 {
       }
     }
 
-    const response: NGSIv1.ContextResponse = {contextElement: [element], statusCode: status};
+    const response: NGSIv1.IContextResponse = {contextElement: [element], statusCode: status};
     return {
       contextResponses: [response],
       originator: "localhost",
