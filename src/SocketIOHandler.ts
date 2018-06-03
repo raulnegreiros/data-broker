@@ -7,7 +7,7 @@ import uuid = require("uuid/v4");
 import {KafkaConsumer} from "./consumer";
 import { logger } from "./logger";
 import {RedisManager} from "./redisManager";
-import {TopicManagerBuilder} from "./topicManager";
+import { TopicManagerBuilder } from "./TopicBuilder";
 
 function getKey(token: string): string {
   return "si:" + token;

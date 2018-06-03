@@ -13,7 +13,7 @@ import util = require("util");
 import { authEnforce, authParse, IAuthRequest} from "./api/authMiddleware";
 import { logger } from "./logger";
 import {SocketIOSingleton} from "./socketIo";
-import {TopicManagerBuilder} from "./topicManager";
+import { TopicManagerBuilder } from "./TopicBuilder";
 
 // For now, express is not so well supported in TypeScript.
 // A quick workaround, which apparently does not have any side effects is to
