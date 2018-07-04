@@ -33,9 +33,6 @@ class SocketIOHandler {
     this.ioServer = sio(httpServer);
     logger.debug("... sio server was created.");
 
-    this.handleMessage.bind(this);
-    this.checkSocket.bind(this);
-
     this.ioServer.use(this.checkSocket);
 
     logger.debug("Registering SocketIO server callbacks...");
