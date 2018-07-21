@@ -114,7 +114,7 @@ function evaluateCondition(condition: any, data: any) {
   let ret = true;
 
   if ("q" in condition) {
-    ret = ret && evaluateLogicCondition(condition.q, data);
+    ret = evaluateLogicCondition(condition.q, data);
   }
 
   if ("mq" in condition) {
@@ -203,8 +203,6 @@ class SubscriptionEngine {
     });
 
     this.subscriber = new KafkaConsumer();
-
-    this.handleEvent.bind(this);
 
     this.registeredSubscriptions = {
       flat: {},
