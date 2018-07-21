@@ -12,9 +12,9 @@ import { TranslatorV1 } from "./TranslatorV1";
 import { TranslatorV2 } from "./TranslatorV2";
 
 const parser = new ArgumentParser();
-parser.addArgument(["-t", "--topic"]);
-parser.addArgument(["-k", "--kafka"]);
-parser.addArgument(["-o", "--target"]);
+parser.addArgument(["-t", "--topic"], {required: true});
+parser.addArgument(["-k", "--kafka"], {required: true});
+parser.addArgument(["-o", "--target"], {required: true});
 parser.addArgument(["--deviceManager"], {defaultValue: "http://device-manager:5000"});
 parser.addArgument(["--group"], {defaultValue: uuid()});
 parser.addArgument(["--version"], {defaultValue: "v1"});

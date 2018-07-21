@@ -5,7 +5,7 @@ import * as device from "./deviceManager";
 
 class TranslatorV2 {
   /**
-   * Translates to NGSIv1 format
+   * Translates to NGSIv2 format
    * @param  {any}           deviceData Current values to be embedded in the event
    * @param  {device.Device} deviceInfo Device information model, as configured in device-manager
    * @param  {string}        topic      Topic in which the event has been received

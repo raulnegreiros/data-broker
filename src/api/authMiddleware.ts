@@ -32,14 +32,16 @@ interface IAuthRequest extends express.Request {
 function authParse(req: IAuthRequest, res: express.Response, next: express.NextFunction) {
   const rawToken = req.header("authorization");
   if (rawToken === undefined) {
-    return next();
+    next();
+    return;
   }
 
   const token = rawToken!.split(".");
   if (token.length !== 3) {
     logger.error("Got invalid request: token is malformed.");
     logger.error(`Token is: ${rawToken}`);
-    return res.status(401).send(new InvalidTokenError());
+    res.status(401).send(new InvalidTokenError());
+    return;
   }
 
   const tokenData = JSON.parse(b64decode(token[1]));
@@ -47,7 +49,7 @@ function authParse(req: IAuthRequest, res: express.Response, next: express.NextF
   req.user = tokenData.username;
   req.userid = tokenData.userid;
   req.service = tokenData.service;
-  return next();
+  next();
 }
 
 function authEnforce(req: IAuthRequest, res: express.Response, next: express.NextFunction) {
@@ -55,17 +57,15 @@ function authEnforce(req: IAuthRequest, res: express.Response, next: express.Nex
     // valid token must be supplied
     logger.error("Got invalid request: user is not defined in token.");
     logger.error(`Token is: ${req.header("authorization")}`);
-    return res.status(401).send(new UnauthorizedError());
-  }
-
-  if (req.service === undefined || req.service!.trim() === "" ) {
+    res.status(401).send(new UnauthorizedError());
+  } else if (req.service === undefined || req.service!.trim() === "" ) {
     // valid token must be supplied
     logger.error("Got invalid request: service is not defined in token.");
     logger.error(`Token is: ${req.header("authorization")}`);
-    return res.status(401).send(new UnauthorizedError());
+    res.status(401).send(new UnauthorizedError());
+  } else {
+    next();
   }
-
-  return next();
 }
 
 export { IAuthRequest, authParse, authEnforce };
