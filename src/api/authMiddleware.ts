@@ -1,44 +1,47 @@
 /* jslint node: true */
 "use strict";
 
-import express = require('express');
+import express = require("express");
+import { logger } from "../logger";
+import { InvalidTokenError } from "./InvalidTokenError";
+import { UnauthorizedError } from "./UnauthorizedError";
 
+/**
+ * Open up a base64 encoded string.
+ * @param data The data to be decoded.
+ */
 function b64decode(data: string): string {
   if (typeof Buffer.from === "function") {
-    return Buffer.from(data, 'base64').toString();
+    return Buffer.from(data, "base64").toString();
   } else {
-    return (new Buffer(data, 'base64')).toString();
+    return (new Buffer(data, "base64")).toString();
   }
 }
 
-export interface AuthRequest extends express.Request {
-  user: string;
-  userid: string;
-  service: string;
+/**
+ * Interface for handling authorization requests.
+ * All parameters should be optional, as pointed out here:
+ * https://stackoverflow.com/questions/49303375/property-push-is-missing-in-type-request-ntlmrequest-response-response
+ */
+interface IAuthRequest extends express.Request {
+  user?: string;
+  userid?: string;
+  service?: string;
 }
 
-class UnauthorizedError {
-  message: string;
-  constructor(){
-    this.message = "Authentication (JWT) required for API";
-  }
-}
-
-class InvalidTokenError {
-  message: string = "Invalid authentication token given";
-  constructor(){}
-}
-
-export function authParse(req: AuthRequest, res: express.Response, next: express.NextFunction) {
-  const rawToken = req.header('authorization');
+function authParse(req: IAuthRequest, res: express.Response, next: express.NextFunction) {
+  const rawToken = req.header("authorization");
   if (rawToken === undefined) {
-    return next();
+    next();
+    return;
   }
 
-  const token = rawToken!.split('.');
-  if (token.length != 3) {
-    console.error("got invalid request: token is malformed", rawToken);
-    return res.status(401).send(new InvalidTokenError());
+  const token = rawToken!.split(".");
+  if (token.length !== 3) {
+    logger.error("Got invalid request: token is malformed.");
+    logger.error(`Token is: ${rawToken}`);
+    res.status(401).send(new InvalidTokenError());
+    return;
   }
 
   const tokenData = JSON.parse(b64decode(token[1]));
@@ -49,17 +52,20 @@ export function authParse(req: AuthRequest, res: express.Response, next: express
   next();
 }
 
-export function authEnforce(req: AuthRequest, res: express.Response, next: express.NextFunction) {
+function authEnforce(req: IAuthRequest, res: express.Response, next: express.NextFunction) {
   if (req.user === undefined || req.user!.trim() === "" ) {
     // valid token must be supplied
-    console.error("got invalid request: user is not defined in token", req.header('authorization'));
-    return res.status(401).send(new UnauthorizedError());
-  }
-
-  if (req.service === undefined || req.service!.trim() === "" ) {
+    logger.error("Got invalid request: user is not defined in token.");
+    logger.error(`Token is: ${req.header("authorization")}`);
+    res.status(401).send(new UnauthorizedError());
+  } else if (req.service === undefined || req.service!.trim() === "" ) {
     // valid token must be supplied
-    return res.status(401).send(new UnauthorizedError());
+    logger.error("Got invalid request: service is not defined in token.");
+    logger.error(`Token is: ${req.header("authorization")}`);
+    res.status(401).send(new UnauthorizedError());
+  } else {
+    next();
   }
-
-  next();
 }
+
+export { IAuthRequest, authParse, authEnforce };
