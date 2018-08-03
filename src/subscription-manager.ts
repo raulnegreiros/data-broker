@@ -11,7 +11,7 @@ import http = require("http");
 import morgan = require("morgan");
 import util = require("util");
 import { authEnforce, authParse, IAuthRequest} from "./api/authMiddleware";
-import { logger } from "./logger";
+const dojot_libs = require('dojot-libs');
 import {SocketIOSingleton} from "./socketIo";
 import { TopicManagerBuilder } from "./TopicBuilder";
 
@@ -32,13 +32,16 @@ const httpServer = http.createServer(app);
 // make sure singleton is instantiated
 SocketIOSingleton.getInstance(httpServer);
 
+//setting log debug route to app
+dojot_libs.loggerRoute(app, 'subscription-manager');
+
 /*
  * Subscription management endpoints
  */
 app.post("/subscription", (request: IAuthRequest, response: express.Response) => {
   const subscription = request.body;
-  logger.debug("Received new subscription request.");
-  logger.debug(`Subscription body is: ${util.inspect(subscription, {depth: null})}`);
+  dojot_libs.logger.debug("Received new subscription request.", {filename: "subscription-manager"});
+  dojot_libs.logger.debug(`Subscription body is: ${util.inspect(subscription, {depth: null})}`, {filename: "subscription-manager"});
   if ("id" in subscription.subject.entities) {
     engine.addSubscription(SubscriptionType.id, subscription.subject.entities.id, subscription);
   } else if ("model" in subscription.subject.entities) {
@@ -53,17 +56,17 @@ app.post("/subscription", (request: IAuthRequest, response: express.Response) =>
  * Topic registry endpoints
  */
 app.get("/topic/:subject", (req: IAuthRequest, response: express.Response) => {
-  logger.debug("Received a topic GET request.");
+  dojot_libs.logger.debug("Received a topic GET request.", {filename: "subscription-manager"});
   if (req.service === undefined) {
-    logger.error("Service is not defined in GET request headers.");
+    dojot_libs.logger.error("Service is not defined in GET request headers.", {filename: "subscription-manager"});
     response.status(401);
     response.send({error: "missing mandatory authorization header in get request"});
   } else {
     const topics = TopicManagerBuilder.get(req.service);
-    logger.debug(`Topic for service ${req.service} and subject ${req.params.subject}.`);
+    dojot_libs.logger.debug(`Topic for service ${req.service} and subject ${req.params.subject}.`, {filename: "subscription-manager"});
     topics.getCreateTopic(req.params.subject, (error: any, data: any) => {
       if (error) {
-        logger.error(`Failed to retrieve topic. Error is ${error}`);
+        dojot_libs.logger.error(`Failed to retrieve topic. Error is ${error}`, {filename: "subscription-manager"});
         response.status(500);
         response.send({error: "failed to process topic"});
       } else {
@@ -77,9 +80,9 @@ app.get("/topic/:subject", (req: IAuthRequest, response: express.Response) => {
  * SocketIO endpoint
  */
 app.get("/socketio", (req: IAuthRequest, response: express.Response) => {
-  logger.debug("Received a request for a new socketIO connection.");
+  dojot_libs.logger.debug("Received a request for a new socketIO connection.", {filename: "subscription-manager"});
   if (req.service === undefined) {
-    logger.error("Service is not defined in SocketIO connection request headers.");
+    dojot_libs.logger.error("Service is not defined in SocketIO connection request headers.", {filename: "subscription-manager"});
     response.status(401);
     response.send({ error: "missing mandatory authorization header in socketio request" });
   } else {
@@ -89,5 +92,5 @@ app.get("/socketio", (req: IAuthRequest, response: express.Response) => {
 });
 
 httpServer.listen(80, () => {
-  logger.debug("Subscription manager listening on port 80");
+  dojot_libs.logger.debug("Subscription manager listening on port 80", {filename: "subscription-manager"});
 });

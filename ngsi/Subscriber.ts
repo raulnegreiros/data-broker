@@ -5,7 +5,7 @@ import {ArgumentParser} from "argparse";
 import axios from "axios";
 import kafka = require("kafka-node");
 import uuid = require("uuid/v4");
-import { logger } from "../src/logger";
+const dojot_libs = require('dojot-libs');
 import { DeviceCache } from "./DeviceCache";
 import * as device from "./deviceManager";
 import { TranslatorV1 } from "./TranslatorV1";
@@ -39,7 +39,7 @@ if (args.version === "v1") {
 } else if (args.version === "v2") {
   translator = new TranslatorV2();
 } else {
-  logger.error("Unknown version " + args.version + " requested.");
+  dojot_libs.logger.error("Unknown version " + args.version + " requested.", {filename: "device-cache"});
   process.exit(1);
 }
 
@@ -49,13 +49,13 @@ function handleMessage(data: kafka.Message) {
   const meta = event.metadata;
   cache.getDeviceInfo(meta.service, meta.deviceid, (err: any, deviceInfo: device.IDevice | undefined) => {
     if (err || (deviceInfo === undefined)) {
-      logger.error("Failed to process received event", err);
+      dojot_libs.logger.error("Failed to process received event", err, {filename: "device-cache"});
       return;
     }
 
     const translated = translator.translate(event.attrs, deviceInfo, data.topic);
     if (translated == null) {
-      logger.error("Failed to parse event", event);
+      dojot_libs.logger.error("Failed to parse event", event, {filename: "device-cache"});
     }
 
     axios({
@@ -64,8 +64,8 @@ function handleMessage(data: kafka.Message) {
       method: "post",
       url: args.target,
     })
-    .then(() => { logger.debug("event sent"); })
-    .catch(() => { logger.debug("failed to send request"); });
+    .then(() => { dojot_libs.logger.debug("event sent"); })
+    .catch(() => { dojot_libs.logger.debug("failed to send request"); });
   });
 
 }
@@ -73,4 +73,4 @@ function handleMessage(data: kafka.Message) {
 const options = { kafkaHost: args.kafka, groupId: args.group};
 const consumer = new kafka.ConsumerGroup(options, args.topic);
 consumer.on("message", handleMessage);
-consumer.on("error", (err) => { logger.error("kafka consumer error", err); });
+consumer.on("error", (err) => { dojot_libs.logger.error("kafka consumer error", err, {filename: "device-cache"}); });
