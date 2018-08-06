@@ -1,13 +1,15 @@
 /* jslint node: true */
 "use strict";
 
+import dojotLibs = require("dojot-libs");
 import kafka = require("kafka-node");
 import sio = require("socket.io");
 import uuid = require("uuid/v4");
 import {KafkaConsumer} from "./consumer";
-const dojot_libs = require('dojot-libs');
 import {RedisManager} from "./redisManager";
 import { TopicManagerBuilder } from "./TopicBuilder";
+
+const logger = dojotLibs.logger;
 
 function getKey(token: string): string {
   return "si:" + token;
@@ -25,23 +27,23 @@ class SocketIOHandler {
    * @param httpServer HTTP server as a basis to offer SocketIO connection
    */
   constructor(httpServer: any) {
-    dojot_libs.logger.debug("Creating new SocketIO handler...", {filename: "SocketIOHandler"});
+    logger.debug("Creating new SocketIO handler...", {filename: "SocketIOHandler"});
 
     this.consumers = {};
 
-    dojot_libs.logger.debug("Creating sio server...", {filename: "SocketIOHandler"});
+    logger.debug("Creating sio server...", {filename: "SocketIOHandler"});
     this.ioServer = sio(httpServer);
-    dojot_libs.logger.debug("... sio server was created.", {filename: "SocketIOHandler"});
+    logger.debug("... sio server was created.", {filename: "SocketIOHandler"});
 
     this.ioServer.use(this.checkSocket);
 
-    dojot_libs.logger.debug("Registering SocketIO server callbacks...", {filename: "SocketIOHandler"});
+    logger.debug("Registering SocketIO server callbacks...", {filename: "SocketIOHandler"});
     this.ioServer.on("connection", (socket) => {
-      dojot_libs.logger.debug("Got new SocketIO connection.", {filename: "SocketIOHandler"});
+      logger.debug("Got new SocketIO connection.", {filename: "SocketIOHandler"});
       const redis = RedisManager.getClient();
       const givenToken = socket.handshake.query.token;
 
-      dojot_libs.logger.debug(`Received token is ${givenToken}.`, {filename: "SocketIOHandler"});
+      logger.debug(`Received token is ${givenToken}.`, {filename: "SocketIOHandler"});
 
       redis.runScript(
         __dirname + "/lua/setDel.lua",
@@ -49,22 +51,22 @@ class SocketIOHandler {
         [],
         (error: any, tenant) => {
           if (error || !tenant) {
-            dojot_libs.logger.error(
+            logger.error(
               `Failed to find suitable context for socket: ${socket.id}.`, {filename: "SocketIOHandler"});
-            dojot_libs.logger.error("Disconnecting socket.", {filename: "SocketIOHandler"});
+            logger.error("Disconnecting socket.", {filename: "SocketIOHandler"});
             socket.disconnect();
             return;
           }
 
-          dojot_libs.logger.debug(
+          logger.debug(
             `Will assign client [${givenToken}] to namespace: (${tenant}): ${
               socket.id
             }`, {filename: "SocketIOHandler"});
           socket.join(tenant);
         });
     });
-    dojot_libs.logger.debug("... SocketIO server callbacks were registered.", {filename: "SocketIOHandler"});
-    dojot_libs.logger.debug("... SocketIO handler was created.", {filename: "SocketIOHandler"});
+    logger.debug("... SocketIO server callbacks were registered.", {filename: "SocketIOHandler"});
+    logger.debug("... SocketIO handler was created.", {filename: "SocketIOHandler"});
   }
 
   /**
@@ -72,15 +74,15 @@ class SocketIOHandler {
    * @param tenant The tenant related to this new token
    */
   public getToken(tenant: string): string {
-    dojot_libs.logger.debug(`Generating new token for tenant ${tenant}...`, {filename: "SocketIOHandler"});
+    logger.debug(`Generating new token for tenant ${tenant}...`, {filename: "SocketIOHandler"});
 
-    dojot_libs.logger.debug("Creating new topic/retrieving current topic in Kafka for this tenant...", {filename: "SocketIOHandler"});
+    logger.debug("Creating new topic/retrieving current for tenant", {filename: "SocketIOHandler"});
     const topicManager = TopicManagerBuilder.get(tenant);
     topicManager.getCreateTopic(
       "device-data",
       (error?: any, topic?: string) => {
         if (error || !topic) {
-          dojot_libs.logger.error(
+          logger.error(
             `Failed to find appropriate topic for tenant: ${
               error ? error : "Unknown topic"
             }`, {filename: "SocketIOHandler"});
@@ -88,15 +90,15 @@ class SocketIOHandler {
         }
         this.subscribeTopic(topic, tenant);
       });
-    dojot_libs.logger.debug("... Kafka topic creation/retrieval was requested.", {filename: "SocketIOHandler"});
+    logger.debug("... Kafka topic creation/retrieval was requested.", {filename: "SocketIOHandler"});
 
-    dojot_libs.logger.debug("Associating tenant and SocketIO token...", {filename: "SocketIOHandler"});
+    logger.debug("Associating tenant and SocketIO token...", {filename: "SocketIOHandler"});
     const token = uuid();
     const redis = RedisManager.getClient();
     redis.client.setex(getKey(token), 60, tenant);
-    dojot_libs.logger.debug("... token and tenant were associated.", {filename: "SocketIOHandler"});
+    logger.debug("... token and tenant were associated.", {filename: "SocketIOHandler"});
 
-    dojot_libs.logger.debug(`... token for tenant ${tenant} was created: ${token}.`, {filename: "SocketIOHandler"});
+    logger.debug(`... token for tenant ${tenant} was created: ${token}.`, {filename: "SocketIOHandler"});
     return token;
   }
 
@@ -107,48 +109,46 @@ class SocketIOHandler {
    * @param message The message received from Kafka Library
    */
   private handleMessage(nsp: string, error?: any, message?: kafka.Message) {
-    dojot_libs.logger.debug("Processing message just received...", {filename: "SocketIOHandler"});
+    logger.debug("Processing message just received...", {filename: "SocketIOHandler"});
     if (error || message === undefined) {
-      dojot_libs.logger.error("Invalid event received. Ignoring.", {filename: "SocketIOHandler"});
-      dojot_libs.logger.error(`Error is ${error}`, {filename: "SocketIOHandler"});
-      dojot_libs.logger.error(`Message is ${message}`, {filename: "SocketIOHandler"});
+      logger.error("Invalid event received. Ignoring.", {filename: "SocketIOHandler"});
+      logger.error(`Error is ${error}`, {filename: "SocketIOHandler"});
+      logger.error(`Message is ${message}`, {filename: "SocketIOHandler"});
       return;
     }
 
     let data: any;
-    dojot_libs.logger.debug("Trying to parse received message payload...", {filename: "SocketIOHandler"});
+    logger.debug("Trying to parse received message payload...", {filename: "SocketIOHandler"});
     try {
       data = JSON.parse(message.value);
     } catch (err) {
       if (err instanceof TypeError) {
-        dojot_libs.logger.debug("... message payload was not successfully parsed.", {filename: "SocketIOHandler"});
-        dojot_libs.logger.error(`Received data is not a valid event: ${message.value}`, {filename: "SocketIOHandler"});
+        logger.debug("... message payload was not successfully parsed.", {filename: "SocketIOHandler"});
+        logger.error(`Received data is not a valid event: ${message.value}`, {filename: "SocketIOHandler"});
       } else if (err instanceof SyntaxError) {
-        dojot_libs.logger.debug("... message payload was not successfully parsed.", {filename: "SocketIOHandler"});
-        dojot_libs.logger.error(`Failed to parse event as JSON: ${message.value}`, {filename: "SocketIOHandler"});
+        logger.debug("... message payload was not successfully parsed.", {filename: "SocketIOHandler"});
+        logger.error(`Failed to parse event as JSON: ${message.value}`, {filename: "SocketIOHandler"});
       }
       return;
     }
-    dojot_libs.logger.debug("... message payload was successfully parsed.", {filename: "SocketIOHandler"});
+    logger.debug("... message payload was successfully parsed.", {filename: "SocketIOHandler"});
 
     if (data.hasOwnProperty("metadata")) {
       if (!data.metadata.hasOwnProperty("deviceid")) {
-        dojot_libs.logger.debug("... received message was not successfully processed.", {filename: "SocketIOHandler"});
-        dojot_libs.logger.error(
-          "Received data is not a valid dojot event - has no deviceid", {filename: "SocketIOHandler"});
+        logger.debug("... received message was not successfully processed.", {filename: "SocketIOHandler"});
+        logger.error("Received data is not a valid dojot event - has no deviceid", {filename: "SocketIOHandler"});
         return;
       }
     } else {
-      dojot_libs.logger.debug("... received message was not successfully processed.", {filename: "SocketIOHandler"});
-      dojot_libs.logger.error(
-        "Received data is not a valid dojot event - has no metadata", {filename: "SocketIOHandler"}, {filename: "SocketIOHandler"});
+      logger.debug("... received message was not successfully processed.", {filename: "SocketIOHandler"});
+      logger.error("Received data is not a valid dojot event - has no metadata", {filename: "SocketIOHandler"});
       return;
     }
 
-    dojot_libs.logger.debug(`Will publish event to namespace ${nsp}: ${message.value}`, {filename: "SocketIOHandler"});
+    logger.debug(`Will publish event to namespace ${nsp}: ${message.value}`, {filename: "SocketIOHandler"});
     this.ioServer.to(nsp).emit(data.metadata.deviceid, data);
     this.ioServer.to(nsp).emit("all", data);
-    dojot_libs.logger.debug("... received message was successfully processed.", {filename: "SocketIOHandler"});
+    logger.debug("... received message was successfully processed.", {filename: "SocketIOHandler"});
   }
 
   /**
@@ -158,13 +158,13 @@ class SocketIOHandler {
    * @returns A new KafkaConsumer
    */
   private subscribeTopic(topic: string, tenant: string): KafkaConsumer {
-    dojot_libs.logger.debug(`Subscribing to topic ${topic}...`, {filename: "SocketIOHandler"});
+    logger.debug(`Subscribing to topic ${topic}...`, {filename: "SocketIOHandler"});
     if (this.consumers.hasOwnProperty(topic)) {
-      dojot_libs.logger.debug("Topic already had a subscription. Returning it.", {filename: "SocketIOHandler"});
+      logger.debug("Topic already had a subscription. Returning it.", {filename: "SocketIOHandler"});
       return this.consumers[topic];
     }
 
-    dojot_libs.logger.debug(`Will subscribe to topic ${topic}`, {filename: "SocketIOHandler"});
+    logger.debug(`Will subscribe to topic ${topic}`, {filename: "SocketIOHandler"});
     const subscriber = new KafkaConsumer();
     this.consumers[topic] = subscriber;
     subscriber.subscribe(
@@ -173,7 +173,7 @@ class SocketIOHandler {
         this.handleMessage(tenant, error, message);
       });
 
-    dojot_libs.logger.debug("... topic was successfully subscribed.", {filename: "SocketIOHandler"});
+    logger.debug("... topic was successfully subscribed.", {filename: "SocketIOHandler"});
     return subscriber;
   }
 

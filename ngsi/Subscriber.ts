@@ -3,9 +3,9 @@
 
 import {ArgumentParser} from "argparse";
 import axios from "axios";
+import dojotLibs = require("dojot-libs");
 import kafka = require("kafka-node");
 import uuid = require("uuid/v4");
-const dojot_libs = require('dojot-libs');
 import { DeviceCache } from "./DeviceCache";
 import * as device from "./deviceManager";
 import { TranslatorV1 } from "./TranslatorV1";
@@ -21,6 +21,7 @@ parser.addArgument(["--version"], {defaultValue: "v1"});
 const args = parser.parseArgs();
 
 const cache = new DeviceCache(args.deviceManager);
+const logger = dojotLibs.logger;
 
 interface ITranslator {
   /**
@@ -39,7 +40,7 @@ if (args.version === "v1") {
 } else if (args.version === "v2") {
   translator = new TranslatorV2();
 } else {
-  dojot_libs.logger.error("Unknown version " + args.version + " requested.", {filename: "device-cache"});
+  logger.error("Unknown version " + args.version + " requested.", {filename: "device-cache"});
   process.exit(1);
 }
 
@@ -49,13 +50,13 @@ function handleMessage(data: kafka.Message) {
   const meta = event.metadata;
   cache.getDeviceInfo(meta.service, meta.deviceid, (err: any, deviceInfo: device.IDevice | undefined) => {
     if (err || (deviceInfo === undefined)) {
-      dojot_libs.logger.error("Failed to process received event", err, {filename: "device-cache"});
+      logger.error("Failed to process received event", err, {filename: "device-cache"});
       return;
     }
 
     const translated = translator.translate(event.attrs, deviceInfo, data.topic);
     if (translated == null) {
-      dojot_libs.logger.error("Failed to parse event", event, {filename: "device-cache"});
+      logger.error("Failed to parse event", event, {filename: "device-cache"});
     }
 
     axios({
@@ -64,8 +65,8 @@ function handleMessage(data: kafka.Message) {
       method: "post",
       url: args.target,
     })
-    .then(() => { dojot_libs.logger.debug("event sent"); })
-    .catch(() => { dojot_libs.logger.debug("failed to send request"); });
+    .then(() => { logger.debug("event sent"); })
+    .catch(() => { logger.debug("failed to send request"); });
   });
 
 }
@@ -73,4 +74,4 @@ function handleMessage(data: kafka.Message) {
 const options = { kafkaHost: args.kafka, groupId: args.group};
 const consumer = new kafka.ConsumerGroup(options, args.topic);
 consumer.on("message", handleMessage);
-consumer.on("error", (err) => { dojot_libs.logger.error("kafka consumer error", err, {filename: "device-cache"}); });
+consumer.on("error", (err) => { logger.error("kafka consumer error", err, {filename: "device-cache"}); });
