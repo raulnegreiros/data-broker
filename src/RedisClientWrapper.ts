@@ -6,18 +6,18 @@ import fs = require("fs");
 import redis = require("redis");
 import { logger } from "./logger";
 
-export interface AssignedScheme {
+export interface IAssignedScheme {
   replica_assigment: {
     [partition: string]: number[];
   };
 }
 
-export interface AutoScheme {
+export interface IAutoScheme {
   num_partition: number;
   replication_factor: number;
 }
-export interface TopicProfile {
-  [name: string]: AssignedScheme | AutoScheme;
+export interface ITopicProfile {
+  [name: string]: IAssignedScheme | IAutoScheme;
 }
 
 /**
@@ -34,14 +34,14 @@ class ClientWrapper {
    * Gets profile configs for a given subject
    * @param subject
    */
-  public getConfig(subject: string): Promise<TopicProfile | undefined> {
-    return new Promise<TopicProfile | undefined>((resolve, reject) => {
+  public getConfig(subject: string): Promise<ITopicProfile | undefined> {
+    return new Promise<ITopicProfile | undefined>((resolve, reject) => {
       this.client.select(1);
       logger.debug(`subject: ${subject}`);
       const pattern: string = "*:" + subject;
       // let cursor: string = '0';
       let keys: any = [];
-      const configs: TopicProfile = {};
+      const configs: ITopicProfile = {};
 
       /**
        * Gets configs given an array of keys
@@ -49,25 +49,25 @@ class ClientWrapper {
        * @param cursor cursor to iterate the keys' array (this isn't the same cursor of scanKeys)
        * @param client redis client
        */
-      function getConfigs(keys: string[], cursor: number, client: redis.RedisClient) {
+      function getConfigs(keysFound: string[], cursor: number, client: redis.RedisClient) {
         client.select(1);
 
-        const insertConfig = (key: any, err: any, reply: any ) => {
+        const insertConfig = (key: any, err: any, reply: any) => {
           if (err) { reject(err); }
           if (key.length > 0) {
             configs[key.split(":")[0]] = JSON.parse(reply);
           }
 
-          if (cursor == 0) {
+          if (cursor === 0) {
             resolve(configs);
             return;
           }
           cursor--;
-          return getConfigs(keys, cursor, client);
+          return getConfigs(keysFound, cursor, client);
         };
 
-        client.get(keys[cursor], (err, reply) => {
-          insertConfig(keys[cursor], err, reply);
+        client.get(keysFound[cursor], (err, reply) => {
+          insertConfig(keysFound[cursor], err, reply);
         });
       }
       /**

@@ -48,9 +48,11 @@ class TopicManager {
       const configs: any = body;
       let ten: any;
       for (ten in configs) {
-        const key: string = ten + ":" + subject;
-        const val: string = JSON.stringify(configs[ten]);
-        this.redis.setConfig(key, val);
+        if (configs.hasOwnProperty(ten)) {
+          const key: string = ten + ":" + subject;
+          const val: string = JSON.stringify(configs[ten]);
+          this.redis.setConfig(key, val);
+        }
       }
     } catch (error) {
       logger.debug("Profiles could not be config");
@@ -58,8 +60,8 @@ class TopicManager {
   }
 
   public editConfigTopics(subject: string, tenant: string, body: any) {
-      const key: string = tenant + ":" + subject;
-      this.redis.setConfig(key, JSON.stringify(body[tenant]));
+    const key: string = tenant + ":" + subject;
+    this.redis.setConfig(key, JSON.stringify(body[tenant]));
   }
 
   public getCreateTopic(subject: string, callback: TopicCallback | undefined): void {

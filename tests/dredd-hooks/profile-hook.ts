@@ -5,12 +5,6 @@ import redis = require("redis");
 import config = require("../../src/config");
 hooks.before("Subject > Subject Profiles > Retrieve subject profile", (transaction: any, done: any) => {
     const client = redis.createClient(6379, config.cache.redis);
-    client.on("connect", () => {
-        console.log("Connected to redis");
-    });
-    client.on("error", function(err) {
-        console.log("Something went wrong " + err);
-    });
     client.select(1);
     let val: any = {
         replica_assignment: {

@@ -4,7 +4,7 @@
 import { TopicManager } from "./topicManager";
 
 class Builder {
-  private managers: {[key: string]: TopicManager};
+  private managers: { [key: string]: TopicManager };
   constructor() {
     this.managers = {};
   }
