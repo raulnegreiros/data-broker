@@ -24,7 +24,7 @@ const logger = winston.createLogger({
         })(),
         timestamp({format: "HH:mm:ss DD/MM/YYYY"}),
         colorize({all: true}),
-        winston.format.printf(formatParams)
+        winston.format.printf(formatParams),
     ),
     transports: [
         new winston.transports.Console({
