@@ -7,8 +7,9 @@ const { combine, timestamp, colorize} = winston.format;
 const debugLevels = ["debug", "info", "warn", "error"];
 
 function formatParams(info: any) {
-    const { tstamp, level, message, ...args } = info;
-    const ts = tstamp.slice(0, 19).replace("T", " ");
+    // tslint:disable-next-line:no-shadowed-variable
+    const { timestamp, level, message, ...args } = info;
+    const ts = timestamp.slice(0, 19).replace("T", " ");
 
     const filename = Object.keys(args).length ? args.filename : "";
 
