@@ -13,7 +13,7 @@ export interface IAssignedScheme {
 }
 
 export interface IAutoScheme {
-  num_partition: number;
+  num_partitions: number;
   replication_factor: number;
 }
 export interface ITopicProfile {
