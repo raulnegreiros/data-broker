@@ -6,7 +6,8 @@ const kafka = {
     group : "subscription-engine",
     id : "consumer-1",
   },
-  kafka: process.env.DATABROKER_KAFKA_HOST || "kafka:9092",
+  kafkaAddress: process.env.DATABROKER_KAFKA_ADDRESS || "kafka",
+  kafkaPort: process.env.DATABROKER_KAFKA_PORT || 9092,
   zookeeper: process.env.DATABROKER_ZOOKEEPER_HOST || "zookeeper:2181",
 };
 
