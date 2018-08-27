@@ -2,11 +2,10 @@
 "use strict";
 
 import uuid = require("uuid/v4");
-import { broker as config } from "./config";
 import { logger } from "./logger";
 import { KafkaProducer } from "./producer";
 import { QueuedTopic } from "./QueuedTopic";
-import { ClientWrapper } from "./RedisClientWrapper";
+import { ClientWrapper, IAutoScheme } from "./RedisClientWrapper";
 import { RedisManager } from "./redisManager";
 
 type TopicCallback = (error?: any, topic?: string) => void;
@@ -117,14 +116,17 @@ class TopicManager {
   }
 
   private handleRequest(request: QueuedTopic) {
-    this.producer.createTopics([request.topic], () => {
-      if (config.ingestion.find((i) => request.subject === i)) {
-        // Subject is used for data ingestion - initialize consumer
-        logger.debug(`Will initialize ingestion handler ${request.subject} at topic ${request.topic}.`);
-      }
-
-      if (request.callback) {
-        request.callback(undefined, request.topic);
+    let profileConfigs: IAutoScheme = { num_partitions: 1, replication_factor: 1 };
+    this.redis.getConfig(request.subject).then((data: any) => {
+      if (data != undefined) {
+        if (data.hasOwnProperty(this.service)) {
+          profileConfigs.num_partitions = data[this.service]["num_partitionss"];
+          profileConfigs.replication_factor = data[this.service]["replication_factor"];
+        } else if (data.hasOwnProperty("*")) {
+          profileConfigs.num_partitions = data["*"]["num_partitions"];
+          profileConfigs.replication_factor = data["*"]["replication_factor"];
+        }
+        this.producer.createTopic(request.topic, profileConfigs, request.callback);
       }
     });
   }

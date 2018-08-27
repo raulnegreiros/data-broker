@@ -85,7 +85,7 @@ class ClientWrapper {
           }
           if (cursor === "0") {
             if (keys.length === 0) {
-              resolve();
+              resolve(configs);
               return;
             }
             return getConfigs(keys, keys.length - 1, client);

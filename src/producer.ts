@@ -1,6 +1,9 @@
 import kafka = require("kafka-node");
+import kafkaDojot = require("@dojot/adminkafka");
 import config = require("./config");
 import { logger } from "./logger";
+import { IAutoScheme } from "./RedisClientWrapper";
+import { TopicCallback } from "./topicManager";
 
 /**
  * Class for producing data to be sent through Kafka
@@ -9,7 +12,7 @@ class KafkaProducer {
 
   /** The producer object used by Kafka library */
   private producer: kafka.HighLevelProducer;
-
+  private producerDojot: kafkaDojot.Admin;
   /**
    * Constructor.
    * @param host The host used to send messages. If not set it will be retrieved from configuration object.
@@ -22,7 +25,8 @@ class KafkaProducer {
     const client = new kafka.Client(kafkaHost);
     logger.debug("... Kafka client was created.");
     logger.debug("Creating Kafka HighLevenProducer...");
-    this.producer = new kafka.HighLevelProducer(client, {requireAcks: 1});
+    this.producerDojot = new kafkaDojot.Admin(config.kafka.kafkaAddress, Number(config.kafka.kafkaPort));
+    this.producer = new kafka.HighLevelProducer(client, { requireAcks: 1 });
     logger.debug("... HighLevelProducer was created.");
     this.producer.on("ready", () => {
       if (init) {
@@ -86,6 +90,14 @@ class KafkaProducer {
     }
 
     logger.debug("... topics creation was requested.");
+  }
+
+  public createTopic(topics: string, profileConfig: IAutoScheme, callback: TopicCallback | undefined) {
+    logger.debug(`Creating topics with ${profileConfig.num_partitions} partition(s) and ${profileConfig.replication_factor} replication factor...`);
+    let creationCode = this.producerDojot.createTopic(topics, profileConfig.num_partitions, profileConfig.replication_factor);
+    logger.debug("... topics creation was requested.");
+    if (callback)
+      callback(creationCode, topics);
   }
 
   /**
