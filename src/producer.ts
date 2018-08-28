@@ -1,5 +1,5 @@
-import kafka = require("kafka-node");
 import kafkaDojot = require("@dojot/adminkafka");
+import kafka = require("kafka-node");
 import config = require("./config");
 import { logger } from "./logger";
 import { IAutoScheme } from "./RedisClientWrapper";
@@ -92,12 +92,14 @@ class KafkaProducer {
     logger.debug("... topics creation was requested.");
   }
 
-  public createTopic(topics: string, profileConfig: IAutoScheme, callback: TopicCallback | undefined) {
-    logger.debug(`Creating topics with ${profileConfig.num_partitions} partition(s) and ${profileConfig.replication_factor} replication factor...`);
-    let creationCode = this.producerDojot.createTopic(topics, profileConfig.num_partitions, profileConfig.replication_factor);
+  public createTopic(topics: string, profile: IAutoScheme, callback: TopicCallback | undefined) {
+    logger.debug(`Creating topics with ${profile.num_partitions} partition(s)`);
+    logger.debug(`and ${profile.replication_factor} replication factor...`);
+    const creationCode = this.producerDojot.createTopic(topics, profile.num_partitions, profile.replication_factor);
     logger.debug("... topics creation was requested.");
-    if (callback)
+    if (callback) {
       callback(creationCode, topics);
+    }
   }
 
   /**

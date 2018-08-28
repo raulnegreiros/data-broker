@@ -116,15 +116,16 @@ class TopicManager {
   }
 
   private handleRequest(request: QueuedTopic) {
-    let profileConfigs: IAutoScheme = { num_partitions: 1, replication_factor: 1 };
+    const profileConfigs: IAutoScheme = { num_partitions: 1, replication_factor: 1 };
+    const genericService: string = "*";
     this.redis.getConfig(request.subject).then((data: any) => {
-      if (data != undefined) {
+      if (data !== undefined) {
         if (data.hasOwnProperty(this.service)) {
-          profileConfigs.num_partitions = data[this.service]["num_partitionss"];
-          profileConfigs.replication_factor = data[this.service]["replication_factor"];
+          profileConfigs.num_partitions = data[this.service].num_partitions;
+          profileConfigs.replication_factor = data[this.service].replication_factor;
         } else if (data.hasOwnProperty("*")) {
-          profileConfigs.num_partitions = data["*"]["num_partitions"];
-          profileConfigs.replication_factor = data["*"]["replication_factor"];
+          profileConfigs.num_partitions = data[genericService].num_partitions;
+          profileConfigs.replication_factor = data[genericService].replication_factor;
         }
         this.producer.createTopic(request.topic, profileConfigs, request.callback);
       }
