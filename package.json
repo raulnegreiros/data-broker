@@ -49,7 +49,7 @@
     "tsconfig": "^7.0.0",
     "typescript": "^2.5.3",
     "uuid": "^3.1.0",
-    "winston": "^2.4.2"
+    "winston": "~3.0.0"
   },
   "devDependencies": {
     "@types/argparse": "^1.0.33",
