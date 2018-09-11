@@ -3,8 +3,6 @@
 
 import { logger } from "@dojot/dojot-module";
 import uuid = require("uuid/v4");
-import { logger } from "./logger";
-import {broker as config} from "./config";
 import { KafkaProducer } from "./producer";
 import { QueuedTopic } from "./QueuedTopic";
 import { ClientWrapper, IAutoScheme } from "./RedisClientWrapper";

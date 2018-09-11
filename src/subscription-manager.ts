@@ -3,8 +3,6 @@
 
 // import engine = require("./subscription-engine");
 
-import { SubscriptionEngine, SubscriptionType } from "./subscription-engine";
-
 import { logger, loggerRoute   } from "@dojot/dojot-module";
 import bodyParser = require("body-parser");
 import express = require("express");
