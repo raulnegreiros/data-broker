@@ -1,15 +1,13 @@
 /* jslint node: true */
 "use strict";
 
-import dojotLibs = require("dojot-libs");
+import { logger } from "@dojot/dojot-module";
 import kafka = require("kafka-node");
 import sio = require("socket.io");
 import uuid = require("uuid/v4");
 import {KafkaConsumer} from "./consumer";
 import {RedisManager} from "./redisManager";
 import { TopicManagerBuilder } from "./TopicBuilder";
-
-const logger = dojotLibs.logger;
 
 function getKey(token: string): string {
   return "si:" + token;

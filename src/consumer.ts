@@ -1,10 +1,8 @@
-import dojotLibs = require("dojot-libs");
+import { logger } from "@dojot/dojot-module";
 import kafka = require("kafka-node");
 import util = require("util");
 import uuid = require("uuid/v4");
 import config = require("./config");
-
-const logger = dojotLibs.logger;
 
 /**
  * Class for consuming data from Kafka.

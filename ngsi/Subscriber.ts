@@ -1,9 +1,9 @@
 /* jslint node: true */
 "use strict";
 
+import { logger } from "@dojot/dojot-module";
 import {ArgumentParser} from "argparse";
 import axios from "axios";
-import dojotLibs = require("dojot-libs");
 import kafka = require("kafka-node");
 import uuid = require("uuid/v4");
 import { DeviceCache } from "./DeviceCache";
@@ -21,7 +21,6 @@ parser.addArgument(["--version"], {defaultValue: "v1"});
 const args = parser.parseArgs();
 
 const cache = new DeviceCache(args.deviceManager);
-const logger = dojotLibs.logger;
 
 interface ITranslator {
   /**

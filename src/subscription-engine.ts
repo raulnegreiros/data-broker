@@ -1,7 +1,7 @@
 /* jslint node: true */
 "use strict";
 
-import dojotLibs = require("dojot-libs");
+import { logger } from "@dojot/dojot-module";
 import kafka = require("kafka-node");
 import util = require("util");
 import { KafkaConsumer } from "./consumer";
@@ -16,8 +16,6 @@ interface IAction {
   topic: string;
   data: any;
 }
-
-const logger = dojotLibs.logger;
 
 // Now this is awful, but
 enum SubscriptionType {

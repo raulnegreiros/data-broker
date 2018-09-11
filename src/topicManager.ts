@@ -1,15 +1,13 @@
 /* jslint node: true */
 "use strict";
 
-import dojotLibs = require("dojot-libs");
+import { logger } from "@dojot/dojot-module";
 import uuid = require("uuid/v4");
 import {broker as config} from "./config";
 import { KafkaProducer } from "./producer";
 import { QueuedTopic } from "./QueuedTopic";
 import { ClientWrapper } from "./RedisClientWrapper";
 import { RedisManager } from "./redisManager";
-
-const logger = dojotLibs.logger;
 
 type TopicCallback = (error?: any, topic?: string) => void;
 

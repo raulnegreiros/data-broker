@@ -1,7 +1,7 @@
 /* jslint node: true */
 "use strict";
 
-import dojotLibs = require("dojot-libs");
+import { logger } from "@dojot/dojot-module";
 import express = require("express");
 import { InvalidTokenError } from "./InvalidTokenError";
 import { UnauthorizedError } from "./UnauthorizedError";
@@ -18,7 +18,6 @@ function b64decode(data: string): string {
   }
 }
 
-const logger = dojotLibs.logger;
 
 /**
  * Interface for handling authorization requests.

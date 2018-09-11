@@ -3,8 +3,8 @@
 
 // import engine = require("./subscription-engine");
 
+import { logger, loggerRoute   } from "@dojot/dojot-module";
 import bodyParser = require("body-parser");
-import dojotLibs = require("dojot-libs");
 import express = require("express");
 import http = require("http");
 import morgan = require("morgan");
@@ -14,7 +14,6 @@ import {SocketIOSingleton} from "./socketIo";
 import {SubscriptionEngine, SubscriptionType} from "./subscription-engine";
 import { TopicManagerBuilder } from "./TopicBuilder";
 
-const logger = dojotLibs.logger;
 
 // For now, express is not so well supported in TypeScript.
 // A quick workaround, which apparently does not have any side effects is to
@@ -36,7 +35,7 @@ SocketIOSingleton.getInstance(httpServer);
 /*
  *setting log debug route to app
  */
-dojotLibs.loggerRoute(app, "subscription-manager");
+loggerRoute(app, "subscription-manager");
 
 /*
  * Subscription management endpoints

@@ -1,8 +1,6 @@
-import dojotLibs = require("dojot-libs");
+import { logger } from "@dojot/dojot-module";
 import kafka = require("kafka-node");
 import config = require("./config");
-
-const logger = dojotLibs.logger;
 
 /**
  * Class for producing data to be sent through Kafka

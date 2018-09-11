@@ -1,8 +1,8 @@
 /* jslint node: true */
 "use strict";
 
+import { logger } from "@dojot/dojot-module";
 import axios, {AxiosError, AxiosResponse} from "axios";
-import dojotLibs = require("dojot-libs");
 import util = require("util");
 import * as device from "./deviceManager";
 
@@ -13,8 +13,6 @@ function generateJWT(service: string) {
          + (new Buffer(JSON.stringify({service})).toString("base64")) + "."
          + (new Buffer("dummy signature").toString("base64"));
 }
-
-const logger = dojotLibs.logger;
 
 class DeviceCache {
   private deviceInfo: {[id: string]: device.IDevice};
