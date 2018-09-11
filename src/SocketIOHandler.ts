@@ -162,7 +162,7 @@ class SocketIOHandler {
       return this.consumers[topic];
     }
 
-    logger.debug(`Will subscribe to topic ${topic}`, {filename: "SocketIOHandler"});
+    logger.debug(`Will subscribe to topic: ${topic}`, {filename: "SocketIOHandler"});
     const subscriber = new KafkaConsumer();
     this.consumers[topic] = subscriber;
     subscriber.subscribe(
@@ -184,6 +184,7 @@ class SocketIOHandler {
     const givenToken = socket.handshake.query.token;
     if (givenToken) {
       const redis = RedisManager.getClient();
+      redis.client.select(0);
       redis.client.get(getKey(givenToken), (error, value) => {
         if (error) {
           return next(new Error("Failed to verify token"));

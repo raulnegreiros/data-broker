@@ -3,10 +3,9 @@
 
 import { logger } from "@dojot/dojot-module";
 import uuid = require("uuid/v4");
-import {broker as config} from "./config";
 import { KafkaProducer } from "./producer";
 import { QueuedTopic } from "./QueuedTopic";
-import { ClientWrapper } from "./RedisClientWrapper";
+import { ClientWrapper, IAutoScheme } from "./RedisClientWrapper";
 import { RedisManager } from "./redisManager";
 
 type TopicCallback = (error?: any, topic?: string) => void;
@@ -39,6 +38,30 @@ class TopicManager {
       }
     });
   }
+  public getConfigTopics(subject: string): Promise<any> {
+    return this.redis.getConfig(subject);
+  }
+
+  public setConfigTopics(subject: string, body: any) {
+    try {
+      const configs: any = body;
+      let ten: any;
+      for (ten in configs) {
+        if (configs.hasOwnProperty(ten)) {
+          const key: string = ten + ":" + subject;
+          const val: string = JSON.stringify(configs[ten]);
+          this.redis.setConfig(key, val);
+        }
+      }
+    } catch (error) {
+      logger.debug("Profiles could not be config");
+    }
+  }
+
+  public editConfigTopics(subject: string, tenant: string, body: any) {
+    const key: string = tenant + ":" + subject;
+    this.redis.setConfig(key, JSON.stringify(body[tenant]));
+  }
 
   public getCreateTopic(subject: string, callback: TopicCallback | undefined): void {
     logger.debug("Retrieving/creating new topic...", {filename: "topicManager"});
@@ -54,7 +77,7 @@ class TopicManager {
         }
 
         logger.debug("... topic was properly created/retrievied.", {filename: "topicManager"});
-        const request = {topic, subject, callback};
+        const request = { topic, subject, callback };
         if (this.producerReady) {
           logger.debug("Handling all pending requests...", {filename: "topicManager"});
           this.handleRequest(request);
@@ -93,14 +116,18 @@ class TopicManager {
   }
 
   private handleRequest(request: QueuedTopic) {
-    this.producer.createTopics([request.topic], () => {
-      if (config.ingestion.find((i) => request.subject === i)) {
-        // Subject is used for data ingestion - initialize consumer
-        logger.debug(`Init ingestion handler ${request.subject} at ${request.topic}.`, {filename: "topicManager"});
-      }
-
-      if (request.callback) {
-        request.callback(undefined, request.topic);
+    const profileConfigs: IAutoScheme = { num_partitions: 1, replication_factor: 1 };
+    const genericService: string = "*";
+    this.redis.getConfig(request.subject).then((data: any) => {
+      if (data !== undefined) {
+        if (data.hasOwnProperty(this.service)) {
+          profileConfigs.num_partitions = data[this.service].num_partitions;
+          profileConfigs.replication_factor = data[this.service].replication_factor;
+        } else if (data.hasOwnProperty("*")) {
+          profileConfigs.num_partitions = data[genericService].num_partitions;
+          profileConfigs.replication_factor = data[genericService].replication_factor;
+        }
+        this.producer.createTopic(request.topic, profileConfigs, request.callback);
       }
     });
   }
