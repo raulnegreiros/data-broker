@@ -1,8 +1,8 @@
+import { logger } from "@dojot/dojot-module";
 import kafka = require("kafka-node");
 import util = require("util");
 import uuid = require("uuid/v4");
 import config = require("./config");
-import { logger } from "./logger";
 
 /**
  * Class for consuming data from Kafka.
@@ -25,10 +25,10 @@ class KafkaConsumer {
     this.info = info ? info : config.kafka.consumer;
     this.id = clientid;
 
-    logger.debug("New Kafka consumer config:");
-    logger.debug(`Host: ${this.host}`);
-    logger.debug(`Client ID: ${this.id}`);
-    logger.debug(`Consumer options: ${util.inspect(this.info, {depth: null})}`);
+    logger.debug("New Kafka consumer config:", {filename: "consumer"});
+    logger.debug(`Host: ${this.host}`, {filename: "consumer"});
+    logger.debug(`Client ID: ${this.id}`, {filename: "consumer"});
+    logger.debug(`Consumer options: ${util.inspect(this.info, {depth: null})}`, {filename: "consumer"});
   }
 
   /**
@@ -38,19 +38,19 @@ class KafkaConsumer {
    * @param onMessage Callback for processing messages received by these subscriptions.
    */
   public subscribe(topics: kafka.Topic[], onMessage?: (error?: any, data?: kafka.Message) => void): void {
-    logger.debug("Subscribing to Kafka topics...");
-    logger.debug(`Topics: ${topics}`);
+    logger.debug("Subscribing to Kafka topics...", {filename: "consumer"});
+    logger.debug(`Topics: ${topics}`, {filename: "consumer"});
     const consumerOpt = {
       groupId: "databroker-" + uuid(),
       kafkaHost: this.host,
       sessionTimeout: 15000,
     };
 
-    logger.debug("Creating Kafka consumer group...");
+    logger.debug("Creating Kafka consumer group...", {filename: "consumer"});
     this.consumer = new kafka.ConsumerGroup(consumerOpt, topics[0].topic);
-    logger.debug("... consumer group was created.");
+    logger.debug("... consumer group was created.", {filename: "consumer"});
 
-    logger.debug("Registering consumer group callbacks...");
+    logger.debug("Registering consumer group callbacks...", {filename: "consumer"});
     this.consumer.on("message", (data: kafka.Message) => {
       if (onMessage) {
         onMessage(undefined, data);
@@ -58,14 +58,14 @@ class KafkaConsumer {
     });
 
     this.consumer.on("error", (error: any) => {
-      logger.error(`Consumer [${this.info.groupId}] has errored: ${error}`);
+      logger.error(`Consumer [${this.info.groupId}] has errored: ${error}`, {filename: "consumer"});
       if (onMessage) {
         onMessage(error);
       }
     });
 
-    logger.debug("... consumer group callbacks were registered.");
-    logger.debug("... subscriptions to Kafka topics were created successfully.");
+    logger.debug("... consumer group callbacks were registered.", {filename: "consumer"});
+    logger.debug("... subscriptions to Kafka topics were created successfully.", {filename: "consumer"});
   }
 }
 

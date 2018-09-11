@@ -3,16 +3,15 @@
 
 // import engine = require("./subscription-engine");
 
-import {SubscriptionEngine, SubscriptionType} from "./subscription-engine";
-
+import { logger, loggerRoute   } from "@dojot/dojot-module";
 import bodyParser = require("body-parser");
 import express = require("express");
 import http = require("http");
 import morgan = require("morgan");
 import util = require("util");
 import { authEnforce, authParse, IAuthRequest} from "./api/authMiddleware";
-import { logger } from "./logger";
 import {SocketIOSingleton} from "./socketIo";
+import {SubscriptionEngine, SubscriptionType} from "./subscription-engine";
 import { TopicManagerBuilder } from "./TopicBuilder";
 
 // For now, express is not so well supported in TypeScript.
@@ -33,12 +32,17 @@ const httpServer = http.createServer(app);
 SocketIOSingleton.getInstance(httpServer);
 
 /*
+ *setting log debug route to app
+ */
+loggerRoute(app, "subscription-manager");
+
+/*
  * Subscription management endpoints
  */
 app.post("/subscription", (request: IAuthRequest, response: express.Response) => {
   const subscription = request.body;
-  logger.debug("Received new subscription request.");
-  logger.debug(`Subscription body is: ${util.inspect(subscription, {depth: null})}`);
+  logger.debug("Received new subscription request.", {filename: "sub-mng"});
+  logger.debug(`Subscription body is: ${util.inspect(subscription, {depth: null})}`, {filename: "sub-mng"});
   if ("id" in subscription.subject.entities) {
     engine.addSubscription(SubscriptionType.id, subscription.subject.entities.id, subscription);
   } else if ("model" in subscription.subject.entities) {
@@ -53,17 +57,17 @@ app.post("/subscription", (request: IAuthRequest, response: express.Response) =>
  * Topic registry endpoints
  */
 app.get("/topic/:subject", (req: IAuthRequest, response: express.Response) => {
-  logger.debug("Received a topic GET request.");
+  logger.debug("Received a topic GET request.", {filename: "sub-mng"});
   if (req.service === undefined) {
-    logger.error("Service is not defined in GET request headers.");
+    logger.error("Service is not defined in GET request headers.", {filename: "sub-mng"});
     response.status(401);
     response.send({error: "missing mandatory authorization header in get request"});
   } else {
     const topics = TopicManagerBuilder.get(req.service);
-    logger.debug(`Topic for service ${req.service} and subject ${req.params.subject}.`);
+    logger.debug(`Topic for service ${req.service} and subject ${req.params.subject}.`, {filename: "sub-mng"});
     topics.getCreateTopic(req.params.subject, (error: any, data: any) => {
       if (error) {
-        logger.error(`Failed to retrieve topic. Error is ${error}`);
+        logger.error(`Failed to retrieve topic. Error is ${error}`, {filename: "sub-mng"});
         response.status(500);
         response.send({error: "failed to process topic"});
       } else {
@@ -77,9 +81,9 @@ app.get("/topic/:subject", (req: IAuthRequest, response: express.Response) => {
  * SocketIO endpoint
  */
 app.get("/socketio", (req: IAuthRequest, response: express.Response) => {
-  logger.debug("Received a request for a new socketIO connection.");
+  logger.debug("Received a request for a new socketIO connection.", {filename: "sub-mng"});
   if (req.service === undefined) {
-    logger.error("Service is not defined in SocketIO connection request headers.");
+    logger.error("Service is not defined in SocketIO connection request headers.", {filename: "sub-mng"});
     response.status(401);
     response.send({ error: "missing mandatory authorization header in socketio request" });
   } else {
@@ -89,5 +93,5 @@ app.get("/socketio", (req: IAuthRequest, response: express.Response) => {
 });
 
 httpServer.listen(80, () => {
-  logger.debug("Subscription manager listening on port 80");
+  logger.debug("Subscription manager listening on port 80", {filename: "sub-mng"});
 });

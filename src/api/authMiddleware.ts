@@ -1,8 +1,8 @@
 /* jslint node: true */
 "use strict";
 
+import { logger } from "@dojot/dojot-module";
 import express = require("express");
-import { logger } from "../logger";
 import { InvalidTokenError } from "./InvalidTokenError";
 import { UnauthorizedError } from "./UnauthorizedError";
 
@@ -38,8 +38,8 @@ function authParse(req: IAuthRequest, res: express.Response, next: express.NextF
 
   const token = rawToken!.split(".");
   if (token.length !== 3) {
-    logger.error("Got invalid request: token is malformed.");
-    logger.error(`Token is: ${rawToken}`);
+    logger.error("Got invalid request: token is malformed.", {filename: "auth"});
+    logger.error(`Token is: ${rawToken}`, {filename: "auth"});
     res.status(401).send(new InvalidTokenError());
     return;
   }
@@ -55,13 +55,13 @@ function authParse(req: IAuthRequest, res: express.Response, next: express.NextF
 function authEnforce(req: IAuthRequest, res: express.Response, next: express.NextFunction) {
   if (req.user === undefined || req.user!.trim() === "" ) {
     // valid token must be supplied
-    logger.error("Got invalid request: user is not defined in token.");
-    logger.error(`Token is: ${req.header("authorization")}`);
+    logger.error("Got invalid request: user is not defined in token.", {filename: "auth"});
+    logger.error(`Token is: ${req.header("authorization")}`, {filename: "auth"});
     res.status(401).send(new UnauthorizedError());
   } else if (req.service === undefined || req.service!.trim() === "" ) {
     // valid token must be supplied
-    logger.error("Got invalid request: service is not defined in token.");
-    logger.error(`Token is: ${req.header("authorization")}`);
+    logger.error("Got invalid request: service is not defined in token.", {filename: "auth"});
+    logger.error(`Token is: ${req.header("authorization")}`, {filename: "auth"});
     res.status(401).send(new UnauthorizedError());
   } else {
     next();
