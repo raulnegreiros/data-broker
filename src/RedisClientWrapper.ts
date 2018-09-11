@@ -1,10 +1,10 @@
 /* jslint node: true */
 "use strict";
 
+import { logger } from "@dojot/dojot-module";
 import crypto = require("crypto");
 import fs = require("fs");
 import redis = require("redis");
-import { logger } from "./logger";
 
 export interface IAssignedScheme {
   replica_assigment: {
