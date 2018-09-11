@@ -1,10 +1,10 @@
 /* jslint node: true */
 "use strict";
 
+import { logger } from "@dojot/dojot-module";
 import kafka = require("kafka-node");
 import util = require("util");
 import { KafkaConsumer } from "./consumer";
-import { logger } from "./logger";
 import { KafkaProducer } from "./producer";
 import tools = require("./simple-tools");
 
@@ -42,7 +42,7 @@ interface IRegisteredSubscriptions {
 const operators = ["==", "!=", ">=", "<=", "~=", ">", "<" ];
 
 function evaluateLogicTest(op1: any, operator: string, op2: string): boolean {
-  logger.debug(`Evaluating logic test: ${op1} ${operator} ${op2}.`);
+  logger.debug(`Evaluating logic test: ${op1} ${operator} ${op2}.`, {filename: "sub-engine"});
   // There"s something here
   switch (operator) {
     case "==":
@@ -64,7 +64,7 @@ function evaluateLogicTest(op1: any, operator: string, op2: string): boolean {
 }
 
 function evaluateLogicCondition(condition: string, data: any) {
-  logger.debug("Evaluating logic condition...");
+  logger.debug("Evaluating logic condition...", {filename: "sub-eng"});
   let ret = true;
 
   const logicTests = tools.tokenize(condition, ";");
@@ -76,7 +76,7 @@ function evaluateLogicCondition(condition: string, data: any) {
         continue;
       }
       ret = evaluateLogicTest(data[logicTokens[0]].value, operator, logicTokens[1]);
-      logger.debug(`Condition evaluation result so far: ${ret}.`);
+      logger.debug(`Condition evaluation result so far: ${ret}.`, {filename: "sub-eng"});
       if (ret === false) {
         break;
       }
@@ -86,27 +86,29 @@ function evaluateLogicCondition(condition: string, data: any) {
     }
   }
 
-  logger.debug("... logic condition was evaluated.");
+  logger.debug("... logic condition was evaluated.", {filename: "sub-eng"});
   return ret;
 }
 
 function evaluateMetaCondition(condition: string, data: any) {
   const ret = true;
-  logger.debug("Evaluation of meta-data is not yet implemented.");
-  logger.debug("Parameters are:");
-  logger.debug(`Condition: ${condition}`);
-  logger.debug(`Data: ${util.inspect(data, { depth: null})}`);
+  logger.debug("Evaluation of meta-data is not yet implemented.", {filename: "sub-eng"});
+
+  logger.debug("Parameters are:", {filename: "sub-eng"});
+  logger.debug(`Condition: ${condition}`, {filename: "sub-eng"});
+  logger.debug(`Data: ${util.inspect(data, { depth: null})}`, {filename: "sub-eng"});
+
   return ret;
 }
 
 function evaluateGeoCondition(georel: string, geometry: string, coords: string, data: any) {
   const ret = true;
-  logger.debug("Evaluation of meta-data is not yet implemented.");
-  logger.debug("Parameters are:");
-  logger.debug(`georel: ${georel}`);
-  logger.debug(`geometry: ${geometry}`);
-  logger.debug(`coords: ${coords}`);
-  logger.debug(`Data: ${util.inspect(data, { depth: null})}`);
+  logger.debug("Evaluation of meta-data is not yet implemented.", {filename: "sub-eng"});
+  logger.debug("Parameters are:", {filename: "sub-eng"});
+  logger.debug(`georel: ${georel}`, {filename: "sub-eng"});
+  logger.debug(`geometry: ${geometry}`, {filename: "sub-eng"});
+  logger.debug(`coords: ${coords}`, {filename: "sub-eng"});
+  logger.debug(`Data: ${util.inspect(data, { depth: null})}`, {filename: "sub-eng"});
   return ret;
 }
 
@@ -161,12 +163,12 @@ function checkSubscriptions(obj: Event, subscriptions: Subscription[]): IAction[
               // TODO Gather all data from the device - the condition might use a few
               // variables that were not registered with this subscription
               if (evaluateCondition(subscription.subject.condition!.expression, obj.attrs)) {
-                logger.debug(`I should send something to ${subscription.notification.topic}`);
+                logger.debug(`I should send something to ${subscription.notification.topic}`, {filename: "sub-eng"});
                 actions.push(generateOutputData(obj, subscription.notification));
               }
             } else {
               // There is no condition to this subscription - it should be triggered
-              logger.debug(`I should send something to ${subscription.notification.topic}`);
+              logger.debug(`Should send something to ${subscription.notification.topic}`, {filename: "sub-eng"});
               actions.push(generateOutputData(obj, subscription.notification));
             }
             break;
@@ -174,16 +176,15 @@ function checkSubscriptions(obj: Event, subscriptions: Subscription[]): IAction[
         }
       } else {
         // All attributes should evaluate this subscription
-        logger.debug(`I should send something to ${subscription.notification.topic}`);
+        logger.debug(`I should send something to ${subscription.notification.topic}`, {filename: "sub-eng"});
         actions.push(generateOutputData(obj, subscription.notification));
       }
     } else {
       // This subscription will be triggered whenever a message is sent by this device
-      logger.debug(`I should send something to ${subscription.notification.topic}`);
+      logger.debug(`Should send something to ${subscription.notification.topic}`, {filename: "sub-eng"});
       actions.push(generateOutputData(obj, subscription.notification));
     }
   }
-
   return actions;
 }
 
@@ -196,7 +197,8 @@ class SubscriptionEngine {
   private registeredSubscriptions: IRegisteredSubscriptions;
 
   constructor() {
-    logger.debug("Initializing subscription engine...");
+    logger.debug("Initializing subscription engine...", {filename: "sub-eng"});
+
     this.producerReady = false;
     this.producer = new KafkaProducer(undefined, () => {
       this.producerReady = true;
@@ -214,35 +216,34 @@ class SubscriptionEngine {
 
   public handleEvent(err: any, message: kafka.Message | undefined) {
     if (err) {
-      logger.error(`Subscriber reported error: ${err}`);
+      logger.error(`Subscriber reported error: ${err}`, {filename: "sub-eng"});
       return;
     }
 
     if (message === undefined) {
-      logger.error("Received an empty message.");
+      logger.error("Received an empty message.", {filename: "sub-eng"});
       return;
     }
 
     if (this.producerReady === false) {
-      logger.error("Got event before being ready to handle it, ignoring");
+      logger.error("Got event before being ready to handle it, ignoring", {filename: "sub-eng"});
       return;
     }
 
     let data: string;
-    logger.debug("New data arrived!");
+    logger.debug("New data arrived!", {filename: "sub-eng"});
     try {
       data = JSON.parse(message.value);
-      logger.debug(`Data: ${util.inspect(data, {depth: null})}`);
+      logger.debug(`Data: ${util.inspect(data, {depth: null})}`, {filename: "sub-eng"});
       this.processEvent(new Event(data));
     } catch (err) {
       if (err instanceof TypeError) {
-        logger.error(`Received data is not a valid event: ${message.value}`);
+        logger.error(`Received data is not a valid event: ${message.value}`, {filename: "sub-eng"});
       } else if (err instanceof SyntaxError) {
-        logger.error(`Failed to parse event as JSON: ${message.value}`);
+        logger.error(`Failed to parse event as JSON: ${message.value}`, {filename: "sub-eng"});
       }
     }
   }
-
   public addIngestionChannel(topic: string[]) {
     const kafkaTopics: kafka.Topic[] = [];
     for (const i in topic) {
