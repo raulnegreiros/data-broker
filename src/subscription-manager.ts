@@ -14,7 +14,6 @@ import {SocketIOSingleton} from "./socketIo";
 import {SubscriptionEngine, SubscriptionType} from "./subscription-engine";
 import { TopicManagerBuilder } from "./TopicBuilder";
 
-
 // For now, express is not so well supported in TypeScript.
 // A quick workaround, which apparently does not have any side effects is to
 // set app with type "any".

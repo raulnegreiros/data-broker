@@ -18,7 +18,6 @@ function b64decode(data: string): string {
   }
 }
 
-
 /**
  * Interface for handling authorization requests.
  * All parameters should be optional, as pointed out here:
