@@ -233,7 +233,7 @@ class SubscriptionEngine {
     let data: string;
     logger.debug("New data arrived!", {filename: "sub-eng"});
     try {
-      data = JSON.parse(message.value);
+      data = JSON.parse(message.value.toString());
       logger.debug(`Data: ${util.inspect(data, {depth: null})}`, {filename: "sub-eng"});
       this.processEvent(new Event(data));
     } catch (err) {
