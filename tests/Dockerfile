@@ -9,7 +9,6 @@ RUN npm install
 
 COPY . .
 RUN npm run-script build
-RUN npm run-script build-tests
 
 
 CMD ["./tests/start-test.sh"]

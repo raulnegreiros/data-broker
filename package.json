@@ -21,17 +21,18 @@
   },
   "scripts": {
     "subscription": "node build/src/subscription-manager.js",
-    "transpile": "tsc",
-    "transpile-tests": "tsc -p ./tsconfig-dredd.json",
     "copy": "[ ! -d build/src/lua ] && mkdir -p build/src/lua ; cp -r src/lua/* build/src/lua",
-    "build": "npm run-script transpile && npm run-script copy",
-    "build-tests": "npm run-script transpile-tests && npm run-script copy"
+    "build": "tsc && npm run-script copy",
+    "test": "jest --coverage ./tests/*"
   },
   "dependencies": {
-    "@dojot/adminkafka": "^0.0.1-alpha.6",
+    "@dojot/adminkafka": "0.0.1-alpha.6",
+    "@dojot/dojot-module": "0.0.1-alpha.7",
+    "@dojot/dojot-module-logger": "0.0.1-alpha.2",
     "@types/async": "^2.0.43",
     "@types/body-parser": "^1.16.5",
     "@types/express": "^4.0.37",
+    "@types/jest": "^23.3.2",
     "@types/kafka-node": "^2.0.3",
     "@types/node": "^8.0.31",
     "@types/uuid": "^3.4.3",
@@ -39,10 +40,9 @@
     "async": "^2.5.0",
     "axios": "^0.17.1",
     "body-parser": "^1.18.2",
-    "@dojot/dojot-module": "0.0.1-alpha.6",
-    "@dojot/dojot-module-logger": "0.0.1-alpha.2",
     "eslint": "^4.7.2",
     "express": "^4.16.0",
+    "jest": "^23.6.0",
     "jshint": "^2.9.5",
     "kafka-node": "^2.2.3",
     "morgan": "^1.9.0",
@@ -55,9 +55,33 @@
   },
   "devDependencies": {
     "@types/argparse": "^1.0.33",
+    "@types/chai": "^4.1.4",
     "@types/morgan": "^1.7.35",
     "@types/redis": "^2.8.1",
+    "@types/sinon": "^5.0.2",
     "@types/socket.io": "^1.4.31",
-    "hooks": "^0.3.2"
+    "hooks": "^0.3.2",
+    "ts-jest": "^23.1.4",
+    "ts-test": "0.0.3",
+    "typings": "^2.1.1"
+  },
+  "jest": {
+    "roots": [
+      "./src",
+      "./tests"
+    ],
+    "transform": {
+      "^.+\\.ts?$": "ts-jest"
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.ts?$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json",
+      "node"
+    ],
+    "collectCoverage": true
   }
 }
