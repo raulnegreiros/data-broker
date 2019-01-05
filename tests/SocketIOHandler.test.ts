@@ -83,6 +83,7 @@ describe("SocketIOHandler", () => {
     it("should build an empty handler", (done) => {
         const httpServerMock = jest.fn();
         const obj = new SocketIOHandler(httpServerMock);
+        expect(obj).not.toBe(undefined);
         expect(mockTestConfig.ioServerUseFn).toBeCalled();
         expect(mockTestConfig.ioServerOnFn).toHaveBeenCalledTimes(1);
         const [event, ioCbk] = mockTestConfig.ioServerOnFn.mock.calls[0];
