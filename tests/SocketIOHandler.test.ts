@@ -107,6 +107,8 @@ describe("SocketIOHandler", () => {
         const obj = new SocketIOHandler({});
         const token = obj.getToken("sample-tenant");
 
+        expect(token).toEqual("sample-uuid");
+
         // Retrieve getCreateTopic call
         expect(mockTestConfig.getCreateTopicFn).toBeCalledTimes(1);
         const [subject, cbk] = mockTestConfig.getCreateTopicFn.mock.calls[0];
