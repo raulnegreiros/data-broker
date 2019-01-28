@@ -39,7 +39,6 @@ describe("RedisClientWrapper", () => {
             expect(data).toEqual({});
             done();
         }).catch((error: any) => {
-            logger.debug("not   ok");
             done(error);
         });
 
@@ -69,7 +68,6 @@ describe("RedisClientWrapper", () => {
                 expect(topicScheme.replication_factor).toBe(1);
                 done();
             }).catch((error: any) => {
-                logger.debug("not   ok");
                 done(error);
             });
         }
@@ -135,7 +133,6 @@ describe("RedisClientWrapper", () => {
             expect(redisStub.select).toBeCalledWith(1);
             expect(promise).toBeInstanceOf(Promise);
             promise.then((data: ITopicProfile | undefined) => {
-                logger.debug("not   ok");
                 done("should not be ok");
             }).catch((error: any) => {
                 expect(error).toBe("generic-error");

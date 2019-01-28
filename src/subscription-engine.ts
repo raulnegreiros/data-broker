@@ -12,7 +12,7 @@ import { Event } from "./subscription/Event";
 import { Notification } from "./subscription/Notification";
 import { Subscription } from "./subscription/Subscription";
 
-logger.transports[0].level = "debug";
+const TAG = { filename: "sub-engine" };
 
 interface IAction {
   topic: string;
@@ -44,7 +44,7 @@ interface IRegisteredSubscriptions {
 const operators = ["==", "!=", ">=", "<=", "~=", ">", "<" ];
 
 function evaluateLogicTest(op1: any, operator: string, op2: string): boolean {
-  logger.debug(`Evaluating logic test: ${op1} ${operator} ${op2}.`, {filename: "sub-engine"});
+  logger.debug(`Evaluating logic test: ${op1} ${operator} ${op2}.`, TAG);
   // There"s something here
   switch (operator) {
     case "==":
