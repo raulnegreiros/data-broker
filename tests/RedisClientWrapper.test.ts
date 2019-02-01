@@ -1,4 +1,3 @@
-import { logger } from "@dojot/dojot-module-logger";
 import "jest";
 import { ClientWrapper, IAutoScheme, ITopicProfile } from "../src/RedisClientWrapper";
 
