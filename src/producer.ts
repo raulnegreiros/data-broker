@@ -5,6 +5,8 @@ import config = require("./config");
 import { IAutoScheme } from "./RedisClientWrapper";
 import { TopicCallback } from "./topicManager";
 
+const TAG = { filename: "admin-producer" };
+
 /**
  * Class for producing data to be sent through Kafka
  */
@@ -93,10 +95,10 @@ class KafkaProducer {
   }
 
   public createTopic(topics: string, profile: IAutoScheme, callback: TopicCallback | undefined) {
-    logger.debug(`Creating topics with ${profile.num_partitions} partition(s)`);
-    logger.debug(`and ${profile.replication_factor} replication factor...`);
+    logger.debug(`Creating topics with ${profile.num_partitions} partition(s)`, TAG);
+    logger.debug(`and ${profile.replication_factor} replication factor...`, TAG);
     const creationCode = this.producerDojot.createTopic(topics, profile.num_partitions, profile.replication_factor);
-    logger.debug("... topics creation was requested.");
+    logger.debug("... topics creation was requested.", TAG);
     if (callback) {
       callback(creationCode, topics);
     }

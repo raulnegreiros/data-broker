@@ -8,6 +8,8 @@ import uuid = require("uuid/v4");
 import { RedisManager } from "./redisManager";
 import { TopicManagerBuilder } from "./TopicBuilder";
 
+const TAG = { filename: "socket-io" };
+
 function getKey(token: string): string {
   return "si:" + token;
 }
@@ -37,7 +39,7 @@ class SocketIOHandler {
     this.messenger = new Messenger("data-broker-socketio");
     this.messenger.init();
     this.messenger.on("device-data", "message", (tenant: string, data: any) => {
-      logger.debug(`Handling message for tenant ${tenant}`);
+      logger.debug(`Handling message for tenant ${tenant}`, TAG);
       this.handleMessage(tenant, data);
     });
 
