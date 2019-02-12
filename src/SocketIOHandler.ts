@@ -26,15 +26,15 @@ class SocketIOHandler {
    * @param httpServer HTTP server as a basis to offer SocketIO connection
    */
   constructor(httpServer: any) {
-    logger.debug("Creating new SocketIO handler...", {filename: "SocketIOHandler"});
+    logger.debug("Creating new SocketIO handler...", { filename: "SocketIOHandler" });
 
-    logger.debug("Creating sio server...", {filename: "SocketIOHandler"});
+    logger.debug("Creating sio server...", { filename: "SocketIOHandler" });
     this.ioServer = sio(httpServer);
-    logger.debug("... sio server was created.", {filename: "SocketIOHandler"});
+    logger.debug("... sio server was created.", { filename: "SocketIOHandler" });
 
     this.ioServer.use(this.checkSocket);
 
-    logger.debug("Registering SocketIO server callbacks...", {filename: "SocketIOHandler"});
+    logger.debug("Registering SocketIO server callbacks...", { filename: "SocketIOHandler" });
 
     this.messenger = new Messenger("data-broker-socketio");
     this.messenger.init();
@@ -44,11 +44,12 @@ class SocketIOHandler {
     });
 
     this.ioServer.on("connection", (socket) => {
-      logger.debug("Got new SocketIO connection.", {filename: "SocketIOHandler"});
+      logger.debug("Got new SocketIO connection.", { filename: "SocketIOHandler" });
       const redis = RedisManager.getClient();
       const givenToken = socket.handshake.query.token;
+      const givenSubject = socket.handshake.query.subject;
 
-      logger.debug(`Received token is ${givenToken}.`, {filename: "SocketIOHandler"});
+      logger.debug(`Received token is ${givenToken}.`, { filename: "SocketIOHandler" });
 
       redis.runScript(
         __dirname + "/lua/setDel.lua",
@@ -57,21 +58,31 @@ class SocketIOHandler {
         (error: any, tenant) => {
           if (error || !tenant) {
             logger.error(
-              `Failed to find suitable context for socket: ${socket.id}.`, {filename: "SocketIOHandler"});
-            logger.error("Disconnecting socket.", {filename: "SocketIOHandler"});
+              `Failed to find suitable context for socket: ${socket.id}.`, { filename: "SocketIOHandler" });
+            logger.error("Disconnecting socket.", { filename: "SocketIOHandler" });
             socket.disconnect();
             return;
           }
 
           logger.debug(
             `Will assign client [${givenToken}] to namespace: (${tenant}): ${
-              socket.id
-            }`, {filename: "SocketIOHandler"});
-          socket.join(tenant);
+            socket.id
+            }`, { filename: "SocketIOHandler" });
+          if (givenSubject != "dojot.notifications") {
+            socket.join(tenant);
+          } else {
+            this.messenger.on("dojot.notification", "message", (ten, msg) => {
+              if (ten === tenant) {
+                if (this.fManager.checkFilter(msg, socket.id)) {
+                  socket.emit("notification", msg);
+                }
+              }
+            })
+          }
         });
     });
-    logger.debug("... SocketIO server callbacks were registered.", {filename: "SocketIOHandler"});
-    logger.debug("... SocketIO handler was created.", {filename: "SocketIOHandler"});
+    logger.debug("... SocketIO server callbacks were registered.", { filename: "SocketIOHandler" });
+    logger.debug("... SocketIO handler was created.", { filename: "SocketIOHandler" });
   }
 
   /**
@@ -79,9 +90,9 @@ class SocketIOHandler {
    * @param tenant The tenant related to this new token
    */
   public getToken(tenant: string): string {
-    logger.debug(`Generating new token for tenant ${tenant}...`, {filename: "SocketIOHandler"});
+    logger.debug(`Generating new token for tenant ${tenant}...`, { filename: "SocketIOHandler" });
 
-    logger.debug("Creating new topic/retrieving current for tenant", {filename: "SocketIOHandler"});
+    logger.debug("Creating new topic/retrieving current for tenant", { filename: "SocketIOHandler" });
     const topicManager = TopicManagerBuilder.get(tenant);
     topicManager.getCreateTopic(
       "device-data",
@@ -89,20 +100,20 @@ class SocketIOHandler {
         if (error || !topic) {
           logger.error(
             `Failed to find appropriate topic for tenant: ${
-              error ? error : "Unknown topic"
-            }`, {filename: "SocketIOHandler"});
+            error ? error : "Unknown topic"
+            }`, { filename: "SocketIOHandler" });
           return;
         }
       });
-    logger.debug("... Kafka topic creation/retrieval was requested.", {filename: "SocketIOHandler"});
+    logger.debug("... Kafka topic creation/retrieval was requested.", { filename: "SocketIOHandler" });
 
-    logger.debug("Associating tenant and SocketIO token...", {filename: "SocketIOHandler"});
+    logger.debug("Associating tenant and SocketIO token...", { filename: "SocketIOHandler" });
     const token = uuid();
     const redis = RedisManager.getClient();
     redis.client.setex(getKey(token), 60, tenant);
-    logger.debug("... token and tenant were associated.", {filename: "SocketIOHandler"});
+    logger.debug("... token and tenant were associated.", { filename: "SocketIOHandler" });
 
-    logger.debug(`... token for tenant ${tenant} was created: ${token}.`, {filename: "SocketIOHandler"});
+    logger.debug(`... token for tenant ${tenant} was created: ${token}.`, { filename: "SocketIOHandler" });
     return token;
   }
 
@@ -113,41 +124,41 @@ class SocketIOHandler {
    * @param message The message received from Kafka Library
    */
   private handleMessage(nsp: string, message: string) {
-    logger.debug("Processing message just received...", {filename: "SocketIOHandler"});
+    logger.debug("Processing message just received...", { filename: "SocketIOHandler" });
 
     let data: any;
-    logger.debug("Trying to parse received message payload...", {filename: "SocketIOHandler"});
+    logger.debug("Trying to parse received message payload...", { filename: "SocketIOHandler" });
     try {
       data = JSON.parse(message);
     } catch (err) {
       if (err instanceof TypeError) {
-        logger.debug("... message payload was not successfully parsed.", {filename: "SocketIOHandler"});
-        logger.error(`Received data is not a valid event: ${message}`, {filename: "SocketIOHandler"});
+        logger.debug("... message payload was not successfully parsed.", { filename: "SocketIOHandler" });
+        logger.error(`Received data is not a valid event: ${message}`, { filename: "SocketIOHandler" });
       } else if (err instanceof SyntaxError) {
-        logger.debug("... message payload was not successfully parsed.", {filename: "SocketIOHandler"});
-        logger.error(`Failed to parse event as JSON: ${message}`, {filename: "SocketIOHandler"});
+        logger.debug("... message payload was not successfully parsed.", { filename: "SocketIOHandler" });
+        logger.error(`Failed to parse event as JSON: ${message}`, { filename: "SocketIOHandler" });
       }
       return;
     }
-    logger.debug("... message payload was successfully parsed.", {filename: "SocketIOHandler"});
+    logger.debug("... message payload was successfully parsed.", { filename: "SocketIOHandler" });
 
     if (data.hasOwnProperty("metadata")) {
       if (!data.metadata.hasOwnProperty("deviceid")) {
-        logger.debug("... received message was not successfully processed.", {filename: "SocketIOHandler"});
-        logger.error("Received data is not a valid dojot event - has no deviceid", {filename: "SocketIOHandler"});
+        logger.debug("... received message was not successfully processed.", { filename: "SocketIOHandler" });
+        logger.error("Received data is not a valid dojot event - has no deviceid", { filename: "SocketIOHandler" });
         return;
       }
     } else {
-      logger.debug("... received message was not successfully processed.", {filename: "SocketIOHandler"});
-      logger.error("Received data is not a valid dojot event - has no metadata", {filename: "SocketIOHandler"});
+      logger.debug("... received message was not successfully processed.", { filename: "SocketIOHandler" });
+      logger.error("Received data is not a valid dojot event - has no metadata", { filename: "SocketIOHandler" });
       return;
     }
 
     logger.debug(`Will publish event to namespace ${nsp} from device ${data.metadata.deviceid}`,
-      {filename: "SocketIOHandler"});
+      { filename: "SocketIOHandler" });
     this.ioServer.to(nsp).emit(data.metadata.deviceid, data);
     this.ioServer.to(nsp).emit("all", data);
-    logger.debug("... received message was successfully processed.", {filename: "SocketIOHandler"});
+    logger.debug("... received message was successfully processed.", { filename: "SocketIOHandler" });
   }
 
   /**
