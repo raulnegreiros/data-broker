@@ -7,6 +7,7 @@ import sio = require("socket.io");
 import uuid = require("uuid/v4");
 import { RedisManager } from "./redisManager";
 import { TopicManagerBuilder } from "./TopicBuilder";
+import { FilterManager } from "./FilterManager";
 
 const TAG = { filename: "socket-io" };
 
@@ -20,7 +21,7 @@ function getKey(token: string): string {
 class SocketIOHandler {
   private ioServer: SocketIO.Server;
   private messenger: Messenger;
-
+  private fManager: FilterManager;
   /**
    * Constructor.
    * @param httpServer HTTP server as a basis to offer SocketIO connection
@@ -43,13 +44,16 @@ class SocketIOHandler {
       this.handleMessage(tenant, data);
     });
 
+    this.fManager = new FilterManager();
+
     this.ioServer.on("connection", (socket) => {
-      logger.debug("Got new SocketIO connection.", { filename: "SocketIOHandler" });
+      logger.debug("Got new SocketIO connection", { filename: "SocketIOHandler" });
       const redis = RedisManager.getClient();
       const givenToken = socket.handshake.query.token;
       const givenSubject = socket.handshake.query.subject;
 
       logger.debug(`Received token is ${givenToken}.`, { filename: "SocketIOHandler" });
+      logger.debug(`Received subject is ${givenSubject}.`, { filename: "SocketIOHandler" });
 
       redis.runScript(
         __dirname + "/lua/setDel.lua",
@@ -71,13 +75,25 @@ class SocketIOHandler {
           if (givenSubject != "dojot.notifications") {
             socket.join(tenant);
           } else {
+            logger.debug("Received connection for dojot.notifications", { filename: "SocketIOHandler " });
             this.messenger.on("dojot.notification", "message", (ten, msg) => {
+              logger.debug("Received dojot notification.", { filename: "SocketIOHandler " });
+              logger.debug(`tenant that came on kafka: ${ten}, tenant that opened the connection: ${tenant}`, { filename: "SocketIOHandler" });
               if (ten === tenant) {
                 if (this.fManager.checkFilter(msg, socket.id)) {
                   socket.emit("notification", msg);
                 }
               }
-            })
+            });
+            //TODO: socket.on disconnect remove callback!!!
+            
+            logger.debug("Will register new filter callback", { filename: "SocketIOHandler " });            
+            socket.on('filter', (filter) => {
+              logger.debug("Received new filter", { filename: "SocketIOHandler " });
+              this.fManager.update(JSON.parse(filter), socket.id);
+            });
+
+
           }
         });
     });

@@ -1,26 +1,37 @@
 "use strict"
-var logger = require('@dojot/dojot-module-logger').logger;
+import { logger } from "@dojot/dojot-module-logger";
 
+export interface INotification {
+    msgId: any;
+    timestamp: any;
+    metaAttrsFilter: {
+        [filter: string]: any;
+    }
+    message: any;
+    subject: string;
+}
 
 class FilterManager {
+    private operationsMap: any;
+    private filters: any;
 
     constructor() {
         //arg1: arg that came on notification
         //arg2: arg on the filter
         this.operationsMap = {
-            ">": (arg1, arg2) => {
+            ">": (arg1: Number, arg2: Number) => {
                 logger.debug("> operation", { fileName: "FilterManager" });
                 return arg1 > arg2 ? 1 : 0;
             },
-            "<": (arg1, arg2) => {
+            "<": (arg1: Number, arg2: Number) => {
                 logger.debug("< operation", { fileName: "FilterManager" });
                 return arg1 < arg2 ? 1 : 0;
             },
-            "=": (arg1, arg2) => {
+            "=": (arg1: any, arg2: any) => {
                 logger.debug("= operation", { fileName: "FilterManager" });
                 return arg1 == arg2 ? 1 : 0;
             },
-            "!=": (arg1, arg2) => {
+            "!=": (arg1: any, arg2: any) => {
                 logger.debug("!= operation", { fileName: "FilterManager" });
                 return arg1 != arg2 ? 1 : 0;
             }
@@ -35,12 +46,12 @@ class FilterManager {
      * @param {*} arg1 
      * @param {*} arg2 
      */
-    applyOperation(operation, arg1, arg2) {
+    applyOperation(operation: string, arg1: any, arg2: any) {
         logger.debug("Gonna apply operation", { fileName: "FilterManager" });
         return this.operationsMap[operation](arg1, arg2);
     }
 
-    update(filter, socketId) {
+    update(filter: any, socketId: string) {
         logger.debug(`Registering new filter for socket ${socketId}`, { "filename": "FilterManager" });
 
         this.filters[socketId] = filter;
@@ -48,7 +59,7 @@ class FilterManager {
 
     }
 
-    removeFilter(socketId){
+    removeFilter(socketId: string){
         delete this.filters[socketId];
     }
 
@@ -56,26 +67,26 @@ class FilterManager {
      * Apply the connection filter to the message to check if it will be forward to the application by SocketIO
      * @param {string} msg 
      */
-    checkFilter(msg, socketId) {
+    checkFilter(msg: string, socketId: string) {
         logger.debug("Checking filter", { "filename": "FilterManager" });
         let retOperation;
-        msg = JSON.parse(msg);
+        let notification: INotification = JSON.parse(msg);
         if (this.filters.hasOwnProperty(socketId)) {
             for (var key in this.filters[socketId]['fields']) {
                 if (this.filters[socketId].fields.hasOwnProperty(key)) {
                     if (key === "subject") {
                         if (msg.hasOwnProperty('subject')) {
                             retOperation = this.applyOperation(this.filters[socketId].fields['subject']['operation'],
-                                msg['subject'], this.filters[socketId].fields['subject']['value']);
+                                notification.subject, this.filters[socketId].fields['subject']['value']);
                             logger.debug(`Return from operation over field subject is ${retOperation}`, { "filename": "FilterManager" });
                             if (!retOperation) {
                                 return retOperation;
                             }
                         }
                     } else {
-                        if (msg['metaAttrsFilter'].hasOwnProperty(key)) {
+                        if (notification.metaAttrsFilter.hasOwnProperty(key)) {
                             retOperation = this.applyOperation(this.filters[socketId].fields[key]['operation'],
-                                msg['metaAttrsFilter'][key], this.filters[socketId].fields[key]['value']);
+                            notification.metaAttrsFilter[key], this.filters[socketId].fields[key]['value']);
                             logger.debug(`Return from operation over field ${key} is ${retOperation}`, { "filename": "FilterManager" });
                             if (!retOperation) {
                                 return retOperation;
