@@ -72,11 +72,11 @@ class SocketIOHandler {
             `Will assign client [${givenToken}] to namespace: (${tenant}): ${
             socket.id
             }`, { filename: "SocketIOHandler" });
-          if (givenSubject != "dojot.notifications") {
+          if (givenSubject != "dojot.notifications"){
             socket.join(tenant);
           } else {
             logger.debug("Received connection for dojot.notifications", { filename: "SocketIOHandler " });
-            this.messenger.on("dojot.notification", "message", (ten, msg) => {
+            this.messenger.on("dojot.notifications", "message", (ten, msg) => {
               logger.debug("Received dojot notification.", { filename: "SocketIOHandler " });
               logger.debug(`tenant that came on kafka: ${ten}, tenant that opened the connection: ${tenant}`, { filename: "SocketIOHandler" });
               if (ten === tenant) {
