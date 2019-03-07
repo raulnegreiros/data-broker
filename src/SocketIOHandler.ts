@@ -84,7 +84,7 @@ class SocketIOHandler {
                   socket.emit("notification", msg);
                 }
               }
-            });
+            }, socket.id);
             //TODO: socket.on disconnect remove callback!!!
             
             logger.debug("Will register new filter callback", { filename: "SocketIOHandler " });            
@@ -92,6 +92,10 @@ class SocketIOHandler {
               logger.debug("Received new filter", { filename: "SocketIOHandler " });
               this.fManager.update(JSON.parse(filter), socket.id);
             });
+            socket.on('disconnect', () => {
+              logger.debug("Socker disconnected. Will unregister callback", { filename: "SocketIOHandler " })
+              this.messenger.unregisterCallback("dojot.notifications", "message", socket.id)
+            })
 
 
           }
