@@ -37,10 +37,14 @@ class SocketIOHandler {
     logger.debug("Registering SocketIO server callbacks...", {filename: "SocketIOHandler"});
 
     this.messenger = new Messenger("data-broker-socketio");
-    this.messenger.init();
-    this.messenger.on("device-data", "message", (tenant: string, data: any) => {
-      logger.debug(`Handling message for tenant ${tenant}`, TAG);
-      this.handleMessage(tenant, data);
+    this.messenger.init().then(() => {
+      this.messenger.on("device-data", "message", (tenant: string, data: any) => {
+        logger.debug(`Handling message for tenant ${tenant}`, TAG);
+        this.handleMessage(tenant, data);
+      });
+    }).catch(error => {
+      logger.error(`Failed to initialize kafka-messenger (${error})`, {filename: "SocketIOHandler"});
+      process.kill(process.pid, "SIGTERM");
     });
 
     this.ioServer.on("connection", (socket) => {
