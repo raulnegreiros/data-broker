@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@dojot/adminkafka": "0.0.1-alpha.9",
-    "@dojot/dojot-module": "0.0.10",
+    "@dojot/dojot-module": "^0.0.1-beta",
     "@dojot/dojot-module-logger": "0.0.1-alpha.4",
     "@types/async": "^2.0.43",
     "@types/body-parser": "^1.16.5",
