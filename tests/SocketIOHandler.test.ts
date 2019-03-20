@@ -7,6 +7,7 @@ redis.createClient = jest.fn();
 import { RedisManager } from "../src/redisManager";
 import { SocketIOHandler } from "../src/SocketIOHandler";
 import { TopicManagerBuilder } from "../src/TopicBuilder";
+import { Messenger } from "@dojot/dojot-module";
 
 // There should be an easier way to implement these tests.
 // But, for now, this is working as expected.
@@ -18,6 +19,7 @@ const mockTestConfig = {
     getTopicManagerBuilderOrigFn: TopicManagerBuilder.get,
     ioServerOnFn: jest.fn(),
     ioServerUseFn: jest.fn(),
+    messengerInitFn: jest.fn(),
     redisRunScriptFn: jest.fn(),
     redisSetEx: jest.fn(),
     socketSample: {
@@ -47,6 +49,12 @@ jest.mock("uuid/v4", () => {
 jest.mock("@dojot/dojot-module");
 
 beforeAll(() => {
+    let mockMessenger: any = Messenger;
+    mockMessenger.mockImplementation(() => {
+        return {
+            init: mockTestConfig.messengerInitFn,
+        }
+    });
     mockTestConfig.getClientFn.mockImplementation(() => {
         return {
             client: {
@@ -69,6 +77,7 @@ beforeEach(() => {
     mockTestConfig.getTopicManagerBuilderFn.mockClear();
     mockTestConfig.getCreateTopicFn.mockClear();
     mockTestConfig.redisSetEx.mockClear();
+    mockTestConfig.messengerInitFn.mockClear();
     RedisManager.getClient = mockTestConfig.getClientFn;
     TopicManagerBuilder.get = mockTestConfig.getTopicManagerBuilderFn;
 });
@@ -81,6 +90,9 @@ afterEach(() => {
 
 describe("SocketIOHandler", () => {
     it("should build an empty handler", (done) => {
+        mockTestConfig.messengerInitFn.mockReturnValue(Promise.reject("reasons"));
+        const MockKill = jest.fn().mockImplementation(() => {});
+        process.kill = MockKill;
         const httpServerMock = jest.fn();
         const obj = new SocketIOHandler(httpServerMock);
         expect(obj).not.toBe(undefined);
