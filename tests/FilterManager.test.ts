@@ -4,6 +4,7 @@ import { FilterManager } from "../src/FilterManager";
 describe("FilterManager", () => {
     it("should build an empty filter manager", () => {
         const fm = new FilterManager();
+        expect(fm).toBeDefined();
     });
 
     it ("should process logical operations", () => {
