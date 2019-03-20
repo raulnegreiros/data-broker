@@ -4,10 +4,10 @@ import redis = require("redis");
 const redisCreateClientOrigFn = redis.createClient;
 redis.createClient = jest.fn();
 
+import { Messenger } from "@dojot/dojot-module";
 import { RedisManager } from "../src/redisManager";
 import { SocketIOHandler } from "../src/SocketIOHandler";
 import { TopicManagerBuilder } from "../src/TopicBuilder";
-import { Messenger } from "@dojot/dojot-module";
 
 // There should be an easier way to implement these tests.
 // But, for now, this is working as expected.
@@ -49,11 +49,11 @@ jest.mock("uuid/v4", () => {
 jest.mock("@dojot/dojot-module");
 
 beforeAll(() => {
-    let mockMessenger: any = Messenger;
+    const mockMessenger: any = Messenger;
     mockMessenger.mockImplementation(() => {
         return {
             init: mockTestConfig.messengerInitFn,
-        }
+        };
     });
     mockTestConfig.getClientFn.mockImplementation(() => {
         return {
@@ -91,7 +91,9 @@ afterEach(() => {
 describe("SocketIOHandler", () => {
     it("should build an empty handler", (done) => {
         mockTestConfig.messengerInitFn.mockReturnValue(Promise.reject("reasons"));
-        const MockKill = jest.fn().mockImplementation(() => {});
+        const MockKill = jest.fn().mockImplementation(() => {
+            // Avoid application crash!
+        });
         process.kill = MockKill;
         const httpServerMock = jest.fn();
         const obj = new SocketIOHandler(httpServerMock);
