@@ -1,6 +1,8 @@
 "use strict";
 import { logger } from "@dojot/dojot-module-logger";
 
+const TAG = { fileName: "FilterManager" };
+
 export interface INotification {
     msgId: any;
     timestamp: any;
@@ -19,21 +21,21 @@ class FilterManager {
         // arg1: arg that came on notification
         // arg2: arg on the filter
         this.operationsMap = {
-            ">": (arg1: Number, arg2: Number) => {
-                logger.debug("> operation", { fileName: "FilterManager" });
-                return arg1 > arg2 ? 1 : 0;
+            "!=": (arg1: any, arg2: any) => {
+                logger.debug("!= operation", TAG);
+                return arg1 !== arg2 ? 1 : 0;
             },
-            "<": (arg1: Number, arg2: Number) => {
-                logger.debug("< operation", { fileName: "FilterManager" });
+            "<": (arg1: number, arg2: number) => {
+                logger.debug("< operation", TAG);
                 return arg1 < arg2 ? 1 : 0;
             },
             "=": (arg1: any, arg2: any) => {
-                logger.debug("= operation", { fileName: "FilterManager" });
-                return arg1 == arg2 ? 1 : 0;
+                logger.debug("= operation", TAG);
+                return arg1 === arg2 ? 1 : 0;
             },
-            "!=": (arg1: any, arg2: any) => {
-                logger.debug("!= operation", { fileName: "FilterManager" });
-                return arg1 != arg2 ? 1 : 0;
+            ">": (arg1: number, arg2: number) => {
+                logger.debug("> operation", TAG);
+                return arg1 > arg2 ? 1 : 0;
             },
         };
 
@@ -47,15 +49,15 @@ class FilterManager {
      * @param {*} arg2
      */
     public applyOperation(operation: string, arg1: any, arg2: any) {
-        logger.debug("Gonna apply operation", { fileName: "FilterManager" });
+        logger.debug("Gonna apply operation", TAG);
         return this.operationsMap[operation](arg1, arg2);
     }
 
     public update(filter: any, socketId: string) {
-        logger.debug(`Registering new filter for socket ${socketId}`, { filename: "FilterManager" });
+        logger.debug(`Registering new filter for socket ${socketId}`, TAG);
 
         this.filters[socketId] = filter;
-        logger.debug(`Displaying current filters map: ${JSON.stringify(this.filters)}`, { filename: "FilterManager" });
+        logger.debug(`Displaying current filters map: ${JSON.stringify(this.filters)}`, TAG);
 
     }
 
@@ -68,7 +70,7 @@ class FilterManager {
      * @param {string} msg
      */
     public checkFilter(msg: string, socketId: string) {
-        logger.debug("Checking filter", { filename: "FilterManager" });
+        logger.debug("Checking filter", TAG);
         let retOperation;
         const notification: INotification = JSON.parse(msg);
         if (this.filters.hasOwnProperty(socketId)) {
@@ -78,7 +80,7 @@ class FilterManager {
                         if (msg.hasOwnProperty("subject")) {
                             retOperation = this.applyOperation(this.filters[socketId].fields.subject.operation,
                                 notification.subject, this.filters[socketId].fields.subject.value);
-                            logger.debug(`Return from operation over field subject is ${retOperation}`, { filename: "FilterManager" });
+                            logger.debug(`Return from operation over field subject is ${retOperation}`, TAG);
                             if (!retOperation) {
                                 return retOperation;
                             }
@@ -87,7 +89,7 @@ class FilterManager {
                         if (notification.metaAttrsFilter.hasOwnProperty(key)) {
                             retOperation = this.applyOperation(this.filters[socketId].fields[key].operation,
                             notification.metaAttrsFilter[key], this.filters[socketId].fields[key].value);
-                            logger.debug(`Return from operation over field ${key} is ${retOperation}`, { filename: "FilterManager" });
+                            logger.debug(`Return from operation over field ${key} is ${retOperation}`, TAG);
                             if (!retOperation) {
                                 return retOperation;
                             }
