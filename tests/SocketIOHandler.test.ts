@@ -4,6 +4,7 @@ import redis = require("redis");
 const redisCreateClientOrigFn = redis.createClient;
 redis.createClient = jest.fn();
 
+import sio = require("socket.io");
 import { RedisManager } from "../src/redisManager";
 import { SocketIOHandler } from "../src/SocketIOHandler";
 import { TopicManagerBuilder } from "../src/TopicBuilder";
@@ -24,6 +25,7 @@ const mockTestConfig = {
         disconnect: jest.fn(),
         handshake: {
             query: {
+                subject: "sample",
                 token: "sample-token",
             },
         },
@@ -69,6 +71,8 @@ beforeEach(() => {
     mockTestConfig.getTopicManagerBuilderFn.mockClear();
     mockTestConfig.getCreateTopicFn.mockClear();
     mockTestConfig.redisSetEx.mockClear();
+    mockTestConfig.socketSample.join.mockClear();
+    mockTestConfig.socketSample.disconnect.mockClear();
     RedisManager.getClient = mockTestConfig.getClientFn;
     TopicManagerBuilder.get = mockTestConfig.getTopicManagerBuilderFn;
 });
@@ -83,6 +87,7 @@ describe("SocketIOHandler", () => {
     it("should build an empty handler", (done) => {
         const httpServerMock = jest.fn();
         const obj = new SocketIOHandler(httpServerMock);
+        obj.processNewSocketIo = jest.fn();
         expect(obj).not.toBe(undefined);
         expect(mockTestConfig.ioServerUseFn).toBeCalled();
         expect(mockTestConfig.ioServerOnFn).toHaveBeenCalledTimes(1);
@@ -97,11 +102,28 @@ describe("SocketIOHandler", () => {
         expect(vals).toEqual([]);
         // Testing redis callbacks
         redisCbk(null, "sample-tenant");
-        expect(mockTestConfig.socketSample.join).toBeCalledTimes(1);
-        expect(mockTestConfig.socketSample.join).toBeCalledWith("sample-tenant");
+        expect(obj.processNewSocketIo).toHaveBeenCalled();
         redisCbk("error", "sample-tenant");
         expect(mockTestConfig.socketSample.disconnect).toBeCalledTimes(1);
         done();
+    });
+
+    it("should process a new regular socket.io connection", () => {
+        const obj = new SocketIOHandler(jest.fn());
+        obj.registerSocketIoNotification = jest.fn();
+        mockTestConfig.socketSample.handshake.query.subject = "sample-subject";
+        obj.processNewSocketIo(mockTestConfig.socketSample as any, "sample-tenant");
+        expect(mockTestConfig.socketSample.join).toHaveBeenCalled();
+        expect(obj.registerSocketIoNotification).not.toHaveBeenCalled();
+    });
+
+    it("should process a new notification socket.io connection", () => {
+        const obj = new SocketIOHandler(jest.fn());
+        obj.registerSocketIoNotification = jest.fn();
+        mockTestConfig.socketSample.handshake.query.subject = "dojot.notifications";
+        obj.processNewSocketIo(mockTestConfig.socketSample as any, "sample-tenant");
+        expect(mockTestConfig.socketSample.join).not.toHaveBeenCalled();
+        expect(obj.registerSocketIoNotification).toHaveBeenCalled();
     });
 
     it("should get a token", (done) => {

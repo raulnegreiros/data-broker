@@ -39,71 +39,68 @@ class SocketIOHandler {
 
     this.messenger = new Messenger("data-broker-socketio");
     this.messenger.init();
-    this.messenger.on("device-data", "message", (tenant: string, data: any) => {
-      logger.debug(`Handling message for tenant ${tenant}`, TAG);
-      this.handleMessage(tenant, data);
-    });
+    this.messenger.on("device-data", "message", this.handleMessage.bind(this));
 
     this.fManager = new FilterManager();
 
-    this.ioServer.on("connection", (socket) => {
+    this.ioServer.on("connection", (socket: sio.Socket) => {
       logger.debug("Got new SocketIO connection", TAG);
       const redis = RedisManager.getClient();
-      const givenToken = socket.handshake.query.token;
-      const givenSubject = socket.handshake.query.subject;
-
-      logger.debug(`Received token is ${givenToken}.`, TAG);
-      logger.debug(`Received subject is ${givenSubject}.`, TAG);
-
       redis.runScript(
         __dirname + "/lua/setDel.lua",
-        [getKey(givenToken)],
+        [getKey(socket.handshake.query.token)],
         [],
-        (error: any, tenant) => {
+        (error: any, tenant: string) => {
           if (error || !tenant) {
             logger.error(
               `Failed to find suitable context for socket: ${socket.id}.`, TAG);
             logger.error("Disconnecting socket.", TAG);
             socket.disconnect();
-            return;
-          }
-
-          logger.debug(
-            `Will assign client [${givenToken}] to namespace: (${tenant}): ${
-            socket.id
-            }`, TAG);
-          if (givenSubject !== "dojot.notifications") {
-            socket.join(tenant);
           } else {
-            logger.debug("Received connection for dojot.notifications", { filename: "SocketIOHandler " });
-            this.messenger.on("dojot.notifications", "message", (ten: string, msg: any) => {
-              logger.debug("Received dojot notification.", { filename: "SocketIOHandler " });
-              logger.debug(`tenant that came on kafka: ${ten}, tenant that opened the connection: ${tenant}`, TAG);
-              if (ten === tenant) {
-                if (this.fManager.checkFilter(msg, socket.id)) {
-                  socket.emit("notification", msg);
-                }
-              }
-            }, socket.id);
-            // TODO: socket.on disconnect remove callback!!!
-
-            logger.debug("Will register new filter callback", { filename: "SocketIOHandler " });
-            socket.on("filter", (filter) => {
-              logger.debug("Received new filter", { filename: "SocketIOHandler " });
-              this.fManager.update(JSON.parse(filter), socket.id);
-            });
-            socket.on("disconnect", () => {
-              logger.debug("Socker disconnected. Will unregister callback", { filename: "SocketIOHandler " });
-              this.messenger.unregisterCallback("dojot.notifications", "message", socket.id);
-            });
-
+            this.processNewSocketIo(socket, tenant);
           }
-        });
+        },
+      );
     });
     logger.debug("... SocketIO server callbacks were registered.", TAG);
     logger.debug("... SocketIO handler was created.", TAG);
   }
 
+  public processNewSocketIo(socket: sio.Socket, tenant: string) {
+    const givenSubject = socket.handshake.query.subject;
+    const givenToken = socket.handshake.query.token;
+    logger.debug(`Received subject is ${givenSubject}.`, TAG);
+    logger.debug(`Received token is ${givenToken}.`, TAG);
+
+    logger.debug(`Will assign client [${givenToken}] to namespace: (${tenant}): ${socket.id}`, TAG);
+    if (givenSubject !== "dojot.notifications") {
+      socket.join(tenant);
+    } else {
+      this.registerSocketIoNotification(socket, tenant);
+    }
+  }
+
+  public registerSocketIoNotification(socket: sio.Socket, tenant: string) {
+    logger.debug("Received connection for dojot.notifications", TAG);
+    this.messenger.on("dojot.notifications", "message", (ten: string, msg: any) => {
+      logger.debug("Received dojot notification.", TAG);
+      if (ten === tenant) {
+        if (this.fManager.checkFilter(msg, socket.id)) {
+          socket.emit("notification", msg);
+        }
+      }
+    }, socket.id);
+
+    logger.debug("Will register new filter callback", { filename: "SocketIOHandler " });
+    socket.on("filter", (filter) => {
+      logger.debug("Received new filter", { filename: "SocketIOHandler " });
+      this.fManager.update(JSON.parse(filter), socket.id);
+    });
+    socket.on("disconnect", () => {
+      logger.debug("Socker disconnected. Will unregister callback", { filename: "SocketIOHandler " });
+      this.messenger.unregisterCallback("dojot.notifications", "message", socket.id);
+    });
+  }
   /**
    * Generate a new token to be used in SocketIO connection.
    * @param tenant The tenant related to this new token
