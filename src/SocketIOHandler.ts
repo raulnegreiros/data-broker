@@ -76,7 +76,7 @@ class SocketIOHandler {
             socket.join(tenant);
           } else {
             logger.debug("Received connection for dojot.notifications", { filename: "SocketIOHandler " });
-            this.messenger.on("dojot.notifications", "message", (ten, msg) => {
+            this.messenger.on("dojot.notifications", "message", (ten: string, msg: any) => {
               logger.debug("Received dojot notification.", { filename: "SocketIOHandler " });
               logger.debug(`tenant that came on kafka: ${ten}, tenant that opened the connection: ${tenant}`, { filename: "SocketIOHandler" });
               if (ten === tenant) {
