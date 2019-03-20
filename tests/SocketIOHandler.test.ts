@@ -4,7 +4,6 @@ import redis = require("redis");
 const redisCreateClientOrigFn = redis.createClient;
 redis.createClient = jest.fn();
 
-import sio = require("socket.io");
 import { RedisManager } from "../src/redisManager";
 import { SocketIOHandler } from "../src/SocketIOHandler";
 import { TopicManagerBuilder } from "../src/TopicBuilder";
