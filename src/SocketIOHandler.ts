@@ -5,9 +5,9 @@ import { Messenger } from "@dojot/dojot-module";
 import { logger } from "@dojot/dojot-module-logger";
 import sio = require("socket.io");
 import uuid = require("uuid/v4");
+import { FilterManager } from "./FilterManager";
 import { RedisManager } from "./redisManager";
 import { TopicManagerBuilder } from "./TopicBuilder";
-import { FilterManager } from "./FilterManager";
 
 const TAG = { filename: "socket-io" };
 
@@ -72,7 +72,7 @@ class SocketIOHandler {
             `Will assign client [${givenToken}] to namespace: (${tenant}): ${
             socket.id
             }`, { filename: "SocketIOHandler" });
-          if (givenSubject != "dojot.notifications"){
+          if (givenSubject != "dojot.notifications") {
             socket.join(tenant);
           } else {
             logger.debug("Received connection for dojot.notifications", { filename: "SocketIOHandler " });
@@ -85,18 +85,17 @@ class SocketIOHandler {
                 }
               }
             }, socket.id);
-            //TODO: socket.on disconnect remove callback!!!
-            
-            logger.debug("Will register new filter callback", { filename: "SocketIOHandler " });            
-            socket.on('filter', (filter) => {
+            // TODO: socket.on disconnect remove callback!!!
+
+            logger.debug("Will register new filter callback", { filename: "SocketIOHandler " });
+            socket.on("filter", (filter) => {
               logger.debug("Received new filter", { filename: "SocketIOHandler " });
               this.fManager.update(JSON.parse(filter), socket.id);
             });
-            socket.on('disconnect', () => {
-              logger.debug("Socker disconnected. Will unregister callback", { filename: "SocketIOHandler " })
-              this.messenger.unregisterCallback("dojot.notifications", "message", socket.id)
-            })
-
+            socket.on("disconnect", () => {
+              logger.debug("Socker disconnected. Will unregister callback", { filename: "SocketIOHandler " });
+              this.messenger.unregisterCallback("dojot.notifications", "message", socket.id);
+            });
 
           }
         });
