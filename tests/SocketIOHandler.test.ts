@@ -110,6 +110,7 @@ beforeEach(() => {
 
     mockTestConfig.messengerInitFn.mockClear();
     mockTestConfig.messengerOnFn.mockClear();
+    mockTestConfig.messengerUnregisterFn.mockClear();
 });
 
 afterEach(() => {
@@ -120,6 +121,11 @@ afterEach(() => {
 
 describe("SocketIOHandler", () => {
     it("should build an empty handler", (done) => {
+        mockTestConfig.messengerInitFn.mockReturnValue(Promise.reject("reasons"));
+        const MockKill = jest.fn().mockImplementation(() => {
+            // Avoid application crash!
+        });
+        process.kill = MockKill;
         const httpServerMock = jest.fn();
         const obj = new SocketIOHandler(httpServerMock);
         obj.processNewSocketIo = jest.fn();
