@@ -171,7 +171,8 @@ describe("SocketIOHandler", () => {
         const obj = new SocketIOHandler(jest.fn());
         mockTestConfig.filterCheckFilterFn.mockReturnValue(true);
         obj.registerSocketIoNotification(mockTestConfig.socketSample as any, "sample-tenant");
-        const [subject, event, onCbk] = mockTestConfig.messengerOnFn.mock.calls[1];
+        expect(mockTestConfig.messengerOnFn).toHaveBeenCalled();
+        const [subject, event, onCbk] = mockTestConfig.messengerOnFn.mock.calls[0];
         expect(subject).toEqual("dojot.notifications");
         expect(event).toEqual("message");
         onCbk("sample-tenant", "sample-msg");
