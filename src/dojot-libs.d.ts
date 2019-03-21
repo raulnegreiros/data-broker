@@ -1,1 +1,1 @@
-declare module 'dojot-libs';
+declare module "dojot-libs";
