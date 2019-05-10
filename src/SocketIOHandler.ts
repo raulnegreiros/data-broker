@@ -39,6 +39,7 @@ class SocketIOHandler {
 
     this.messenger = messenger;
     this.messenger.on("device-data", "message", this.handleMessage.bind(this));
+    this.messenger.on("dojot.device-manager.device", "message", this.handleMessageActuator.bind(this));
 
     this.fManager = new FilterManager();
 
@@ -175,6 +176,80 @@ class SocketIOHandler {
     this.ioServer.to(nsp).emit("all", data);
     logger.debug("... received message was successfully processed.", TAG);
   }
+
+    /**
+     * Callback function used to process actuator message  received from Kafka library.
+     * @param nsp SocketIO namespace to send out messages to all subscribers. These are tenants.
+     * @param error Error received from Kafka library.
+     * @param message The actuator message  received from Kafka Library
+     */
+    private handleMessageActuator(nsp: string, message: string) {
+        logger.debug("Processing actuator message just received...", TAG);
+        let data: any;
+        logger.debug("Trying to parse received actuator message payload...", TAG);
+        try {
+            data = JSON.parse(message);
+        } catch (err) {
+            if (err instanceof TypeError) {
+                logger.debug("... actuator message payload was not successfully parsed.", TAG);
+                logger.error(`Received data is not a valid event: ${message}`, TAG);
+            } else if (err instanceof SyntaxError) {
+                logger.debug("... actuator message payload was not successfully parsed.", TAG);
+                logger.error(`Failed to parse event as JSON: ${message}`, TAG);
+            }
+            return;
+        }
+        logger.debug("... actuator message payload was successfully parsed.", TAG);
+
+        if (!data.hasOwnProperty("event")) {
+            logger.debug("... received actuator message was not successfully processed.", TAG);
+            logger.error("Received data is not a valid dojot event - has no event", TAG);
+            return;
+        }else if (data.event !== 'configure') {
+            logger.debug("... received actuator message was not successfully processed.", TAG);
+            logger.error("Received data is not a valid dojot event - event is not configure", TAG);
+            return;
+        }
+
+        if (!data.hasOwnProperty("meta")) {
+            logger.debug("... received actuator message was not successfully processed.", TAG);
+            logger.error("Received data is not a valid dojot event - has no meta", TAG);
+            return;
+        } else if (!data.meta.hasOwnProperty("service")) {
+            logger.debug("... received actuator message was not successfully processed.", TAG);
+            logger.error("Received data is not a valid dojot event - has no meta.service", TAG);
+            return;
+        }
+
+        if (!data.hasOwnProperty("data")) {
+            logger.debug("... received actuator message was not successfully processed.", TAG);
+            logger.error("Received data is not a valid dojot event - has no data", TAG);
+            return;
+        } else if (!data.data.hasOwnProperty("id")) {
+            logger.debug("... received actuator message was not successfully processed.", TAG);
+            logger.error("Received data is not a valid dojot event - has no data.id", TAG);
+            return;
+        } else if (!data.data.hasOwnProperty("attrs")) {
+            logger.debug("... received actuator message was not successfully processed.", TAG);
+            logger.error("Received data is not a valid dojot event - has no data.attrs", TAG);
+            return;
+        }
+        const {data: {id: deviceid}, meta: {service: tenant, timestamp}} = data;
+        const normalizeData = {
+            metadata: {
+                deviceid,
+                tenant,
+                timestamp
+            },
+            attrs: data.data.attrs
+        };
+
+        logger.debug(`Will publish event to namespace ${nsp} from device ${deviceid}`,
+            {filename: "SocketIOHandler"});
+        this.ioServer.to(nsp).emit(deviceid, normalizeData);
+        this.ioServer.to(nsp).emit("all", normalizeData);
+        logger.debug("... received actuator message was successfully processed.", TAG);
+    }
 
   /**
    *
