@@ -205,7 +205,7 @@ class SocketIOHandler {
             logger.debug("... received actuator message was not successfully processed.", TAG);
             logger.error("Received data is not a valid dojot event - has no event", TAG);
             return;
-        }else if (data.event !== 'configure') {
+        }else if (data.event !== "configure") {
             logger.debug("... received actuator message was not successfully processed.", TAG);
             logger.error("Received data is not a valid dojot event - event is not configure", TAG);
             return;
@@ -236,12 +236,12 @@ class SocketIOHandler {
         }
         const {data: {id: deviceid}, meta: {service: tenant, timestamp}} = data;
         const normalizeData = {
+            attrs: data.data.attrs,
             metadata: {
                 deviceid,
                 tenant,
-                timestamp
+                timestamp,
             },
-            attrs: data.data.attrs
         };
 
         logger.debug(`Will publish event to namespace ${nsp} from device ${deviceid}`,
