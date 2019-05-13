@@ -100,7 +100,7 @@ beforeAll(() => {
             return {
                 emit: jest.fn(),
             };
-        }
+        },
     );
 });
 
@@ -240,19 +240,18 @@ describe("SocketIOHandler", () => {
         expect(subject).toEqual("dojot.device-manager.device");
         expect(event).toEqual("message");
         onCbk("sample-tenant", JSON.stringify({
-            "event": "configure",
-            "meta": {
-                "service": "sample-tenant",
-                "timestamp": 0
+            event: "configure",
+            meta: {
+                service: "sample-tenant",
+                timestamp: 0,
             },
-            "data": {
-                "id": "efac",
-                "attrs": {
-                    "target_temperature": 23.5
-                }
-            }
+            data: {
+                id: "efac",
+                attrs: {
+                    target_temperature: 23.5,
+                },
+            },
         }));
-
 
         expect(mockTestConfig.filterCheckFilterFn).not.toBeCalled();
         expect(mockTestConfig.ioServerToFn).toBeCalled();
@@ -273,17 +272,16 @@ describe("SocketIOHandler", () => {
         expect(subject).toEqual("device-data");
         expect(event).toEqual("message");
         onCbk("sample-tenant", JSON.stringify({
-            "metadata": {
-                "deviceid": "c6ea4b",
-                "tenant": "admin",
-                "timestamp": 1528226137452,
-                "templates": [2, 3]
+            metadata: {
+                deviceid: "c6ea4b",
+                tenant: "admin",
+                timestamp: 1528226137452,
+                templates: [2, 3],
             },
-            "attrs": {
-                "humidity": 60
-            }
+            attrs: {
+                humidity: 60,
+            },
         }));
-
 
         expect(mockTestConfig.filterCheckFilterFn).not.toBeCalled();
         expect(mockTestConfig.ioServerToFn).toBeCalled();
