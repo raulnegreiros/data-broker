@@ -23,7 +23,6 @@ const mockTestConfig = {
     ioServerOnFn: jest.fn(),
     ioServerToFn: jest.fn(),
     ioServerUseFn: jest.fn(),
-    ioServerEmitFn: jest.fn(),
     messengerInitFn: jest.fn(),
     messengerMock: {},
     messengerOnFn: jest.fn(),
