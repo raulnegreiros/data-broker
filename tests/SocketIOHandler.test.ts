@@ -21,8 +21,8 @@ const mockTestConfig = {
     getTopicManagerBuilderFn: jest.fn(),
     getTopicManagerBuilderOrigFn: TopicManagerBuilder.get,
     ioServerOnFn: jest.fn(),
-    ioServerUseFn: jest.fn(),
     ioServerToFn: jest.fn(),
+    ioServerUseFn: jest.fn(),
     ioServerEmitFn: jest.fn(),
     messengerInitFn: jest.fn(),
     messengerMock: {},
@@ -49,8 +49,8 @@ jest.mock("socket.io", () => {
     return () => {
         return {
             on: mockTestConfig.ioServerOnFn,
-            use: mockTestConfig.ioServerUseFn,
             to: mockTestConfig.ioServerToFn,
+            use: mockTestConfig.ioServerUseFn,
         };
     };
 });
@@ -240,16 +240,16 @@ describe("SocketIOHandler", () => {
         expect(subject).toEqual("dojot.device-manager.device");
         expect(event).toEqual("message");
         onCbk("sample-tenant", JSON.stringify({
+            data: {
+                attrs: {
+                    target_temperature: 23.5,
+                },
+                id: "efac",
+            },
             event: "configure",
             meta: {
                 service: "sample-tenant",
                 timestamp: 0,
-            },
-            data: {
-                id: "efac",
-                attrs: {
-                    target_temperature: 23.5,
-                },
             },
         }));
 
@@ -272,14 +272,13 @@ describe("SocketIOHandler", () => {
         expect(subject).toEqual("device-data");
         expect(event).toEqual("message");
         onCbk("sample-tenant", JSON.stringify({
+            attrs: {
+                humidity: 60,
+            },
             metadata: {
                 deviceid: "c6ea4b",
                 tenant: "admin",
                 timestamp: 1528226137452,
-                templates: [2, 3],
-            },
-            attrs: {
-                humidity: 60,
             },
         }));
 
