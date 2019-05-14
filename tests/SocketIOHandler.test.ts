@@ -4,11 +4,11 @@ import redis = require("redis");
 const redisCreateClientOrigFn = redis.createClient;
 redis.createClient = jest.fn();
 
-import { Messenger } from "@dojot/dojot-module";
-import { FilterManager } from "../src/FilterManager";
-import { RedisManager } from "../src/redisManager";
-import { SocketIOHandler } from "../src/SocketIOHandler";
-import { TopicManagerBuilder } from "../src/TopicBuilder";
+import {Messenger} from "@dojot/dojot-module";
+import {FilterManager} from "../src/FilterManager";
+import {RedisManager} from "../src/redisManager";
+import {SocketIOHandler} from "../src/SocketIOHandler";
+import {TopicManagerBuilder} from "../src/TopicBuilder";
 
 // There should be an easier way to implement these tests.
 // But, for now, this is working as expected.
@@ -21,6 +21,7 @@ const mockTestConfig = {
     getTopicManagerBuilderFn: jest.fn(),
     getTopicManagerBuilderOrigFn: TopicManagerBuilder.get,
     ioServerOnFn: jest.fn(),
+    ioServerToFn: jest.fn(),
     ioServerUseFn: jest.fn(),
     messengerInitFn: jest.fn(),
     messengerMock: {},
@@ -45,8 +46,9 @@ const mockTestConfig = {
 
 jest.mock("socket.io", () => {
     return () => {
-        return  {
+        return {
             on: mockTestConfig.ioServerOnFn,
+            to: mockTestConfig.ioServerToFn,
             use: mockTestConfig.ioServerUseFn,
         };
     };
@@ -91,6 +93,14 @@ beforeAll(() => {
             getCreateTopic: mockTestConfig.getCreateTopicFn,
         };
     });
+
+    mockTestConfig.ioServerToFn.mockImplementation(
+        () => {
+            return {
+                emit: jest.fn(),
+            };
+        },
+    );
 });
 
 beforeEach(() => {
@@ -174,7 +184,7 @@ describe("SocketIOHandler", () => {
         mockTestConfig.filterCheckFilterFn.mockReturnValue(true);
         obj.registerSocketIoNotification(mockTestConfig.socketSample as any, "sample-tenant");
         expect(mockTestConfig.messengerOnFn).toHaveBeenCalled();
-        const [subject, event, onCbk] = mockTestConfig.messengerOnFn.mock.calls[1];
+        const [subject, event, onCbk] = mockTestConfig.messengerOnFn.mock.calls[2];
         expect(subject).toEqual("dojot.notifications");
         expect(event).toEqual("message");
         onCbk("sample-tenant", "sample-msg");
@@ -190,11 +200,11 @@ describe("SocketIOHandler", () => {
         expect(sioEvent).toEqual("disconnect");
         sioCbk();
         expect(
-          mockTestConfig.messengerUnregisterFn,
+            mockTestConfig.messengerUnregisterFn,
         ).toHaveBeenCalledWith(
-          "dojot.notifications",
-          "message",
-          mockTestConfig.socketSample.id,
+            "dojot.notifications",
+            "message",
+            mockTestConfig.socketSample.id,
         );
 
         // Clearing mocks for alternate unit tests
@@ -213,6 +223,67 @@ describe("SocketIOHandler", () => {
         onCbk("sample-tenant", "sample-msg");
         expect(mockTestConfig.filterCheckFilterFn).toHaveBeenCalled();
         expect(mockTestConfig.socketSample.emit).not.toHaveBeenCalled();
+    });
+
+    it("should register a new actuator socket.io connection", () => {
+        mockTestConfig.filterCheckFilterFn.mockClear();
+        mockTestConfig.socketSample.emit.mockClear();
+
+        const obj = new SocketIOHandler(jest.fn(), mockTestConfig.messengerMock as any);
+        mockTestConfig.socketSample.handshake.query.subject = "dojot.device-manager.device";
+        obj.processNewSocketIo(mockTestConfig.socketSample as any, "sample-tenant");
+        expect(mockTestConfig.socketSample.join).toBeCalled();
+
+        expect(mockTestConfig.messengerOnFn).toHaveBeenCalled();
+        const [subject, event, onCbk] = mockTestConfig.messengerOnFn.mock.calls[1];
+        expect(subject).toEqual("dojot.device-manager.device");
+        expect(event).toEqual("message");
+        onCbk("sample-tenant", JSON.stringify({
+            data: {
+                attrs: {
+                    target_temperature: 23.5,
+                },
+                id: "efac",
+            },
+            event: "configure",
+            meta: {
+                service: "sample-tenant",
+                timestamp: 0,
+            },
+        }));
+
+        expect(mockTestConfig.filterCheckFilterFn).not.toBeCalled();
+        expect(mockTestConfig.ioServerToFn).toBeCalled();
+
+    });
+
+    it("should register a new device-data socket.io connection", () => {
+        mockTestConfig.filterCheckFilterFn.mockClear();
+        mockTestConfig.socketSample.emit.mockClear();
+
+        const obj = new SocketIOHandler(jest.fn(), mockTestConfig.messengerMock as any);
+        mockTestConfig.socketSample.handshake.query.subject = "device-data";
+        obj.processNewSocketIo(mockTestConfig.socketSample as any, "sample-tenant");
+        expect(mockTestConfig.socketSample.join).toBeCalled();
+
+        expect(mockTestConfig.messengerOnFn).toHaveBeenCalled();
+        const [subject, event, onCbk] = mockTestConfig.messengerOnFn.mock.calls[0];
+        expect(subject).toEqual("device-data");
+        expect(event).toEqual("message");
+        onCbk("sample-tenant", JSON.stringify({
+            attrs: {
+                humidity: 60,
+            },
+            metadata: {
+                deviceid: "c6ea4b",
+                tenant: "admin",
+                timestamp: 1528226137452,
+            },
+        }));
+
+        expect(mockTestConfig.filterCheckFilterFn).not.toBeCalled();
+        expect(mockTestConfig.ioServerToFn).toBeCalled();
+
     });
 
     it("should get a token", (done) => {
